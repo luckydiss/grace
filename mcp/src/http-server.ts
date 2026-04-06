@@ -18,6 +18,11 @@ interface RateLimitBucket {
   windowStartedAt: number;
 }
 
+interface GraceMcpHttpRuntime {
+  app: ReturnType<typeof createMcpExpressApp>;
+  close: () => Promise<void>;
+}
+
 function writeJsonRpcError(
   res: Response,
   status: number,
@@ -47,6 +52,56 @@ function extractBearerToken(value: string | undefined): string | null {
   return trimmed.slice("bearer ".length).trim() || null;
 }
 
+function resolveCorsHeaders(
+  runtimeConfig: GraceMcpRuntimeConfig,
+  requestOrigin: string | undefined,
+): Record<string, string> | null {
+  if (!requestOrigin || runtimeConfig.corsAllowedOrigins.length === 0) {
+    return null;
+  }
+
+  const allowAnyOrigin = runtimeConfig.corsAllowedOrigins.includes("*");
+  const allowOrigin = allowAnyOrigin
+    ? "*"
+    : runtimeConfig.corsAllowedOrigins.includes(requestOrigin)
+      ? requestOrigin
+      : null;
+
+  if (!allowOrigin) {
+    return null;
+  }
+
+  const headers: Record<string, string> = {
+    "access-control-allow-origin": allowOrigin,
+    vary: "Origin",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-headers":
+      "content-type, authorization, x-grace-mcp-protocol-version",
+  };
+
+  if (runtimeConfig.corsAllowCredentials && allowOrigin !== "*") {
+    headers["access-control-allow-credentials"] = "true";
+  }
+
+  return headers;
+}
+
+function applyCorsHeaders(
+  res: Response,
+  runtimeConfig: GraceMcpRuntimeConfig,
+  requestOrigin: string | undefined,
+): boolean {
+  const headers = resolveCorsHeaders(runtimeConfig, requestOrigin);
+  if (!headers) {
+    return false;
+  }
+
+  for (const [key, value] of Object.entries(headers)) {
+    res.setHeader(key, value);
+  }
+  return true;
+}
+
 function buildRateLimiter(maxPerMinute: number) {
   const buckets = new Map<string, RateLimitBucket>();
   const windowMs = 60_000;
@@ -71,10 +126,11 @@ function buildRateLimiter(maxPerMinute: number) {
   };
 }
 
-export function buildGraceMcpHttpApp(
+function buildGraceMcpHttpRuntime(
   runtimeConfig: GraceMcpRuntimeConfig = resolveGraceMcpRuntimeConfig(),
-) {
+): GraceMcpHttpRuntime {
   const app = createMcpExpressApp();
+  const server = buildGraceMcpServer(runtimeConfig);
   const rateLimit = buildRateLimiter(runtimeConfig.rateLimitPerMinute);
 
   app.use((_req: Request, res: Response, next: NextFunction) => {
@@ -130,18 +186,21 @@ export function buildGraceMcpHttpApp(
     next();
   };
 
-  app.post("/mcp", rateLimit, enforceHttpContract, async (req: Request, res: Response) => {
-    const server = buildGraceMcpServer(runtimeConfig);
+  app.options("/mcp", rateLimit, enforceHttpContract, (req: Request, res: Response) => {
+    applyCorsHeaders(res, runtimeConfig, req.header("origin"));
+    res.status(204).end();
+  });
 
+  app.post("/mcp", rateLimit, enforceHttpContract, async (req: Request, res: Response) => {
     try {
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
       });
+      applyCorsHeaders(res, runtimeConfig, req.header("origin"));
       await server.connect(transport);
       await transport.handleRequest(req, res, req.body);
       res.on("close", () => {
         void transport.close();
-        void server.close();
       });
     } catch (error) {
       console.error("GRACE_MCP_HTTP_ERROR", error);
@@ -158,7 +217,8 @@ export function buildGraceMcpHttpApp(
     }
   });
 
-  const methodNotAllowed = (_req: unknown, res: { writeHead: (status: number) => { end: (body: string) => void } }) => {
+  const methodNotAllowed = (req: Request, res: Response) => {
+    applyCorsHeaders(res, runtimeConfig, req.header("origin"));
     res.writeHead(405).end(
       JSON.stringify({
         jsonrpc: "2.0",
@@ -174,7 +234,18 @@ export function buildGraceMcpHttpApp(
   app.get("/mcp", methodNotAllowed);
   app.delete("/mcp", methodNotAllowed);
 
-  return app;
+  return {
+    app,
+    close: async () => {
+      await server.close();
+    },
+  };
+}
+
+export function buildGraceMcpHttpApp(
+  runtimeConfig: GraceMcpRuntimeConfig = resolveGraceMcpRuntimeConfig(),
+) {
+  return buildGraceMcpHttpRuntime(runtimeConfig).app;
 }
 
 export function resolveHttpPort(envPort: string | undefined): number {
@@ -192,7 +263,8 @@ export async function startGraceMcpHttpServer(
   port: number;
   close: () => Promise<void>;
 }> {
-  const app = buildGraceMcpHttpApp(runtimeConfig);
+  const runtime = buildGraceMcpHttpRuntime(runtimeConfig);
+  const { app } = runtime;
   const server = await new Promise<import("node:http").Server>((resolveServer, reject) => {
     const httpServer = app.listen(port, (error?: Error) => {
       if (error) {
@@ -207,7 +279,7 @@ export async function startGraceMcpHttpServer(
   const actualPort = (server.address() as AddressInfo | null)?.port ?? port;
   return {
     port: actualPort,
-    close: async () =>
+    close: async () => {
       await new Promise<void>((resolveClose, rejectClose) => {
         server.close((error) => {
           if (error) {
@@ -216,7 +288,9 @@ export async function startGraceMcpHttpServer(
           }
           resolveClose();
         });
-      }),
+      });
+      await runtime.close();
+    },
   };
 }
 

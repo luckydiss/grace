@@ -1,8 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { emitWorkflowOwnedArtifacts } from "../artifacts/process-artifacts.js";
 import { emitIssueReport } from "../artifacts/issue-report.js";
 import { evaluateGuards } from "../policies/guard-engine.js";
+import { ensureParentDir } from "../runtime/fs-utils.js";
+import { emitGraceRuntimeLog } from "../runtime/runtime-log.js";
 import {
   GRACE_TRANSITION_EVENT_SCHEMA,
   GRACE_WORKFLOW_STATE_SCHEMA,
@@ -178,19 +180,11 @@ function graceRuntimeLog(entry: {
   belief: string;
   fact: Record<string, unknown>;
 }): void {
-  console.error(
-    JSON.stringify({
-      ts: new Date().toISOString(),
-      layer: "runtime",
-      mc: MC_GRACE_WORKFLOW_CORE,
-      fc: FC_GRACE_STATE_APPLY_TRANSITION,
-      ...entry,
-    }),
-  );
-}
-
-function ensureParentDir(filePath: string): void {
-  mkdirSync(dirname(filePath), { recursive: true });
+  emitGraceRuntimeLog({
+    mc: MC_GRACE_WORKFLOW_CORE,
+    fc: FC_GRACE_STATE_APPLY_TRANSITION,
+    ...entry,
+  });
 }
 
 function createInitialState(productId: string, traceId: string, actor: WorkflowActor, now: string): WorkflowStateDocument {

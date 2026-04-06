@@ -392,7 +392,7 @@ test("grace-mcp starts and approves a workflow on a temp copied product", async 
       productId: "grace-mcp",
       threadId: "grace-mcp-test-thread",
     });
-    assert.equal(resumed.currentState, "READY_FOR_RELEASE");
+    assert.equal(resumed.currentState, "ARCHIVED");
 
     const evidence = await validateAgentEvidence({
       repoRoot,

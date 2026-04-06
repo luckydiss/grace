@@ -7,8 +7,8 @@
     "node": ">=24"
   },
   "scripts": {
-    "build": "node node_modules/typescript/bin/tsc -p tsconfig.json",
-    "build:tools": "node node_modules/typescript/bin/tsc -p tsconfig.tools.json",
+    "build": "tsc -p tsconfig.json",
+    "build:tools": "tsc -p tsconfig.tools.json",
     "grace:init": "node out/tools/grace-init.js",
     "validate:framework": "node out/tools/grace-validate.js --mode framework",
     "validate:product": "node out/tools/grace-validate.js --mode product --root .",
@@ -24,13 +24,16 @@
     "mcp:test": "npm --prefix mcp run test",
     "mcp:start": "npm --prefix mcp run start",
     "mcp:start:http": "npm --prefix mcp run start:http",
-    "test:core": "node --test .\\dist\\adapters\\legacy-validator.test.js .\\dist\\agents\\invoke-agent.test.js .\\dist\\agents\\load-agent-descriptor.test.js .\\dist\\artifacts\\issue-report.test.js .\\dist\\artifacts\\process-artifacts.test.js .\\dist\\autonomy\\recovery-bridge.test.js .\\dist\\cli\\bootstrap-legacy-overlay.test.js .\\dist\\cli\\dry-run-legacy-edit.test.js .\\dist\\cli\\infer-legacy-contracts.test.js .\\dist\\cli\\propose-legacy-slices.test.js .\\dist\\cli\\run-workflow.test.js .\\dist\\cli\\scan-legacy-repo.test.js .\\dist\\cli\\seed-legacy-trace.test.js .\\dist\\executors\\run-agent-role.test.js .\\dist\\executors\\run-bounded-role.test.js .\\dist\\legacy\\bootstrap.test.js .\\dist\\legacy\\infer-contracts.test.js .\\dist\\legacy\\scan.test.js .\\dist\\legacy\\slice-propose.test.js .\\dist\\legacy\\trace-seed.test.js .\\dist\\policies\\guard-engine.test.js .\\dist\\runtime\\product-target.test.js .\\dist\\state\\transition-engine.test.js .\\dist\\validators\\agent-evidence.test.js .\\dist\\validators\\transition-evidence.test.js .\\dist\\validators\\living-doc.test.js .\\dist\\validators\\policy-schema-consistency.test.js",
-    "test:graph": "node --test .\\dist\\graph\\workflow.test.js",
-    "test": "npm run test:core && npm run test:graph"
+    "test:core": "node scripts/run-tests.mjs dist --exclude-dir graph",
+    "test:graph": "node scripts/run-tests.mjs dist/graph",
+    "test:tools": "node scripts/run-tests.mjs out",
+    "test": "npm run build && npm run build:tools && npm run test:core && npm run test:graph && npm run test:tools",
+    "coverage": "npm run build && npm run build:tools && node scripts/run-tests.mjs --coverage dist out --exclude-dir graph"
   },
   "dependencies": {
     "@langchain/core": "^0.3.80",
-    "@langchain/langgraph": "^0.4.9"
+    "@langchain/langgraph": "^0.4.9",
+    "@langchain/langgraph-checkpoint": "^0.1.1"
   },
   "devDependencies": {
     "@types/node": "^22.19.15",

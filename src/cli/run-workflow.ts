@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { buildGraceWorkflow, resumeGraceWorkflow } from "../graph/workflow.js";
+import { ensureParentDir } from "../runtime/fs-utils.js";
 import {
   buildProductArtifactRef,
   resolveProductTarget,
@@ -240,10 +241,6 @@ async function collectStream(streamPromise: Promise<AsyncIterable<unknown>>): Pr
     chunks.push(chunk);
   }
   return chunks;
-}
-
-function ensureParentDir(filePath: string): void {
-  mkdirSync(dirname(filePath), { recursive: true });
 }
 
 function resetPath(filePath: string): void {

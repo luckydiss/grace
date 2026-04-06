@@ -107,7 +107,7 @@ test("grace CLI resumes workflow and writes final state report", () => {
 
   const resumed = runCli(["resume", ...sharedArgs, "--approval-decision", "approve", "--out", resumeOut], cwd);
   assert.equal(resumed.status, 0);
-  assert.match(readFileSync(resumeOut, "utf8"), /READY_FOR_RELEASE/u);
+  assert.match(readFileSync(resumeOut, "utf8"), /ARCHIVED/u);
   assert.match(readFileSync(join(dir, "executions", "CoordinatorExecution-Workflow-0001.xml"), "utf8"), /CoordinatorExecution/u);
   assert.match(readFileSync(join(dir, "executions", "CoordinatorSkillTrace-Workflow-0001.json"), "utf8"), /mode-coordinator/u);
 });

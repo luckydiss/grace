@@ -1,9 +1,10 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { Annotation, Command, END, START, StateGraph, interrupt } from "@langchain/langgraph";
 import { MemorySaver } from "@langchain/langgraph-checkpoint";
 import { executeRecoveryBridge } from "../autonomy/recovery-bridge.js";
 import { runArchitectRole, runCoderRole, runCoordinatorRole } from "../executors/run-agent-role.js";
+import { emitGraceRuntimeLog } from "../runtime/runtime-log.js";
 import { toRepoArtifactRef } from "../runtime/product-target.js";
 import { inferLegacyContracts } from "../legacy/infer-contracts.js";
 import { scanLegacyRepository } from "../legacy/scan.js";
@@ -98,15 +99,11 @@ function graceRuntimeLog(entry: {
   belief: string;
   fact: Record<string, unknown>;
 }): void {
-  console.error(
-    JSON.stringify({
-      ts: new Date().toISOString(),
-      layer: "runtime",
-      mc: MC_GRACE_WORKFLOW_CORE,
-      fc: FC_GRACE_GRAPH_BUILD_WORKFLOW,
-      ...entry,
-    }),
-  );
+  emitGraceRuntimeLog({
+    mc: MC_GRACE_WORKFLOW_CORE,
+    fc: FC_GRACE_GRAPH_BUILD_WORKFLOW,
+    ...entry,
+  });
 }
 
 function transitionUpdate(
@@ -261,6 +258,31 @@ function makePlainState(input: GraceWorkflowInput, currentState: WorkflowStateNa
     transitionHistory: [] as string[],
     artifactHistory: [] as string[],
     issueReportRefs: [] as string[],
+  };
+}
+
+function mergeGraphUpdates(
+  ...updates: Array<Partial<typeof WorkflowAnnotation.State>>
+): Partial<typeof WorkflowAnnotation.State> {
+  let currentState: WorkflowStateName | null | undefined;
+  const transitionHistory: string[] = [];
+  const artifactHistory: string[] = [];
+  const issueReportRefs: string[] = [];
+
+  for (const update of updates) {
+    if (update.currentState !== undefined) {
+      currentState = update.currentState;
+    }
+    transitionHistory.push(...(update.transitionHistory ?? []));
+    artifactHistory.push(...(update.artifactHistory ?? []));
+    issueReportRefs.push(...(update.issueReportRefs ?? []));
+  }
+
+  return {
+    currentState,
+    transitionHistory,
+    artifactHistory,
+    issueReportRefs,
   };
 }
 
@@ -486,6 +508,50 @@ export function buildGraceWorkflow() {
       }
       return appendRuntimeTransition(state, "CODER", "propose_legacy_slice", [refs.slicePlanRef]);
     })
+    .addNode("legacy_dry_run", (state) => {
+      const refs = buildLegacyRefs(state);
+      const plan = proposeLegacySlice({
+        target: {
+          repoRoot: state.repoRoot,
+          productRoot: state.productRoot,
+          productId: state.productId,
+          traceId: state.traceId,
+          mode: "legacy-overlay",
+          sourceRepoRoot: state.sourceRepoRoot,
+        },
+        scanReportFile: refs.scanReportFile,
+        riskReportFile: refs.riskReportFile,
+        draftsFile: refs.contractDraftsFile,
+        registryFile: refs.graphRegistryFile,
+        planFile: refs.slicePlanFile,
+      });
+      const candidate = plan.plan.candidates[0];
+      if (!candidate) {
+        throw new Error("legacy dry-run requires at least one proposed legacy slice candidate");
+      }
+      proposeLegacyDryRunEdit({
+        target: {
+          repoRoot: state.repoRoot,
+          productRoot: state.productRoot,
+          productId: state.productId,
+          traceId: state.traceId,
+          mode: "legacy-overlay",
+          sourceRepoRoot: state.sourceRepoRoot,
+        },
+        planFile: refs.slicePlanFile,
+        policyFile: state.policyFile,
+        dryRunFile: refs.dryRunFile,
+        sliceId: candidate.id,
+        requestedWritePaths: candidate.writablePathHints.map((filePath) => join(state.sourceRepoRoot, filePath)),
+        writeModeAuthorized: true,
+      });
+      return {
+        currentState: state.currentState,
+        transitionHistory: [],
+        artifactHistory: [refs.dryRunRef],
+        issueReportRefs: [],
+      };
+    })
     .addNode("legacy_evidence_gate", (state) => {
       const refs = buildLegacyRefs(state);
       const agentEvidence = validateAgentEvidence({
@@ -510,7 +576,8 @@ export function buildGraceWorkflow() {
           refs.slicePlanRef,
         ],
       });
-      if (!agentEvidence.ok || !transitionEvidence.ok) {
+      const dryRunReady = existsSync(refs.dryRunFile);
+      if (!agentEvidence.ok || !transitionEvidence.ok || !dryRunReady) {
         return appendRuntimeTransition(
           state,
           "COORDINATOR",
@@ -521,7 +588,7 @@ export function buildGraceWorkflow() {
       return {
         currentState: state.currentState,
         transitionHistory: [],
-        artifactHistory: [...agentEvidence.artifactRefs, refs.slicePlanRef],
+        artifactHistory: [...agentEvidence.artifactRefs, refs.slicePlanRef, refs.dryRunRef],
         issueReportRefs: [],
       };
     })
@@ -559,12 +626,7 @@ export function buildGraceWorkflow() {
       const approve = transitionUpdate({ ...state, ...start, ...review }, "COORDINATOR", "approve_blueprint", [
         state.developmentPlanRef,
       ]);
-      return {
-        ...start,
-        transitionHistory: [...(start.transitionHistory ?? []), ...(review.transitionHistory ?? []), ...(approve.transitionHistory ?? [])],
-        artifactHistory: [...(start.artifactHistory ?? []), ...(review.artifactHistory ?? []), ...(approve.artifactHistory ?? [])],
-        currentState: approve.currentState,
-      };
+      return mergeGraphUpdates(start, review, approve);
     })
     .addNode("handoff_flow", (state) => {
       const start = transitionUpdate(
@@ -584,11 +646,7 @@ export function buildGraceWorkflow() {
       );
       const propose = transitionUpdate({ ...state, ...start }, "COORDINATOR", "propose_handoff", [state.handoffRef]);
       const request = transitionUpdate({ ...state, ...start, ...propose }, "COORDINATOR", "request_handoff_approval", [state.handoffRef]);
-      return {
-        currentState: request.currentState,
-        transitionHistory: [...(start.transitionHistory ?? []), ...(propose.transitionHistory ?? []), ...(request.transitionHistory ?? [])],
-        artifactHistory: [...(start.artifactHistory ?? []), ...(propose.artifactHistory ?? []), ...(request.artifactHistory ?? [])],
-      };
+      return mergeGraphUpdates(start, propose, request);
     })
     .addNode("await_human_approval", (state) => {
       /* <BLOCK_ANCHOR id="BA-grace-route-approval" purpose="Pause the workflow at the handoff approval boundary and resume only with an explicit human decision" /> */
@@ -673,12 +731,7 @@ export function buildGraceWorkflow() {
           { handoffRef: state.handoffRef },
         ),
       ]);
-      return {
-        currentState: issued.currentState,
-        transitionHistory: [...(draft.transitionHistory ?? []), ...(branch.transitionHistory ?? []), ...(issued.transitionHistory ?? [])],
-        artifactHistory: [...(draft.artifactHistory ?? []), ...(branch.artifactHistory ?? []), ...(issued.artifactHistory ?? [])],
-        issueReportRefs: [...(issued.issueReportRefs ?? [])],
-      };
+      return mergeGraphUpdates(draft, branch, issued);
     })
     .addNode("coder_flow", (state) => {
       const activate = transitionUpdate(state, "COORDINATOR", "activate_coder", [state.cwoRef]);
@@ -710,11 +763,7 @@ export function buildGraceWorkflow() {
         coderArtifacts.executionRef,
         coderArtifacts.skillTraceRef,
       ]);
-      return {
-        currentState: submit.currentState,
-        transitionHistory: [...(activate.transitionHistory ?? []), ...(submit.transitionHistory ?? [])],
-        artifactHistory: [...(activate.artifactHistory ?? []), ...(submit.artifactHistory ?? [])],
-      };
+      return mergeGraphUpdates(activate, submit);
     })
     .addNode("verification_flow", (state) => {
       const start = transitionUpdate(state, "COORDINATOR", "start_verification", []);
@@ -749,19 +798,20 @@ export function buildGraceWorkflow() {
           proposedFix: state.proposedFix,
           evidenceRefs: [state.policySchemaReportRef],
         });
-        return {
-          currentState: recovery.currentState,
-          transitionHistory: [...(start.transitionHistory ?? []), ...(fail.transitionHistory ?? []), ...(capture.transitionHistory ?? []), ...recovery.transitionHistory],
-          artifactHistory: [...(start.artifactHistory ?? []), ...(fail.artifactHistory ?? []), ...(capture.artifactHistory ?? []), ...recovery.artifactRefs],
-          issueReportRefs: [...(fail.issueReportRefs ?? []), ...(capture.issueReportRefs ?? [])],
-        };
+        return mergeGraphUpdates(
+          start,
+          fail,
+          capture,
+          {
+            currentState: recovery.currentState,
+            transitionHistory: recovery.transitionHistory,
+            artifactHistory: recovery.artifactRefs,
+            issueReportRefs: [...(fail.issueReportRefs ?? []), ...(capture.issueReportRefs ?? [])],
+          },
+        );
       }
       const pass = transitionUpdate({ ...state, ...start }, "COORDINATOR", "record_verification_pass", []);
-      return {
-        currentState: pass.currentState,
-        transitionHistory: [...(start.transitionHistory ?? []), ...(pass.transitionHistory ?? [])],
-        artifactHistory: [...(start.artifactHistory ?? []), ...(pass.artifactHistory ?? [])],
-      };
+      return mergeGraphUpdates(start, pass);
     })
     .addNode("living_doc_gate", (state) => {
       const validation = validateLivingDocuments({
@@ -777,13 +827,19 @@ export function buildGraceWorkflow() {
       });
       if (!validation.ok) {
         const fail = transitionUpdate(state, "COORDINATOR", "record_living_doc_fail", [validation.artifactRef ?? state.livingDocReportRef]);
-        const capture = transitionUpdate({ ...state, ...fail }, "COORDINATOR", "capture_failure", [validation.artifactRef ?? state.livingDocReportRef]);
-        return {
-          currentState: capture.currentState,
-          transitionHistory: [...(fail.transitionHistory ?? []), ...(capture.transitionHistory ?? [])],
-          artifactHistory: [...(fail.artifactHistory ?? []), ...(capture.artifactHistory ?? [])],
-          issueReportRefs: [...(fail.issueReportRefs ?? []), ...(capture.issueReportRefs ?? [])],
-        };
+        const reject = transitionUpdate(
+          { ...state, ...fail },
+          "COORDINATOR",
+          "reject_coder_output",
+          [state.cwoRef, validation.artifactRef ?? state.livingDocReportRef],
+        );
+        const reissue = transitionUpdate(
+          { ...state, ...fail, ...reject },
+          "COORDINATOR",
+          "split_scope_and_reissue_cwo",
+          [state.cwoRef, validation.artifactRef ?? state.livingDocReportRef],
+        );
+        return mergeGraphUpdates(fail, reject, reissue);
       }
       return {
         currentState: state.currentState,
@@ -802,13 +858,19 @@ export function buildGraceWorkflow() {
       });
       if (!agentEvidence.ok) {
         const fail = transitionUpdate(state, "COORDINATOR", "record_traceability_fail", agentEvidence.artifactRefs);
-        const capture = transitionUpdate({ ...state, ...fail }, "COORDINATOR", "capture_failure", agentEvidence.artifactRefs);
-        return {
-          currentState: capture.currentState,
-          transitionHistory: [...(fail.transitionHistory ?? []), ...(capture.transitionHistory ?? [])],
-          artifactHistory: [...agentEvidence.artifactRefs, ...(fail.artifactHistory ?? []), ...(capture.artifactHistory ?? [])],
-          issueReportRefs: [...(fail.issueReportRefs ?? []), ...(capture.issueReportRefs ?? [])],
-        };
+        const reject = transitionUpdate(
+          { ...state, ...fail },
+          "COORDINATOR",
+          "reject_coder_output",
+          [state.cwoRef, ...agentEvidence.artifactRefs],
+        );
+        const reissue = transitionUpdate(
+          { ...state, ...fail, ...reject },
+          "COORDINATOR",
+          "split_scope_and_reissue_cwo",
+          [state.cwoRef, ...agentEvidence.artifactRefs],
+        );
+        return mergeGraphUpdates(fail, reject, reissue);
       }
       const validation = validateTransitionEvidence({
         productId: state.productId,
@@ -820,17 +882,20 @@ export function buildGraceWorkflow() {
       });
       if (!validation.ok) {
         const fail = transitionUpdate(state, "COORDINATOR", "record_traceability_fail", []);
-        const capture = transitionUpdate({ ...state, ...fail }, "COORDINATOR", "capture_failure", []);
-        return {
-          currentState: capture.currentState,
-          transitionHistory: [...(fail.transitionHistory ?? []), ...(capture.transitionHistory ?? [])],
-          artifactHistory: [...(fail.artifactHistory ?? []), ...(capture.artifactHistory ?? [])],
-          issueReportRefs: [...(fail.issueReportRefs ?? []), ...(capture.issueReportRefs ?? [])],
-        };
+        const reject = transitionUpdate({ ...state, ...fail }, "COORDINATOR", "reject_coder_output", [state.cwoRef]);
+        const reissue = transitionUpdate(
+          { ...state, ...fail, ...reject },
+          "COORDINATOR",
+          "split_scope_and_reissue_cwo",
+          [state.cwoRef],
+        );
+        return mergeGraphUpdates(fail, reject, reissue);
       }
       return appendRuntimeTransition(state, "COORDINATOR", "record_traceability_pass", []);
     })
     .addNode("release_ready", (state) => appendRuntimeTransition(state, "COORDINATOR", "mark_ready_for_release", []))
+    .addNode("deliver_release", (state) => appendRuntimeTransition(state, "COORDINATOR", "mark_delivered", []))
+    .addNode("archive_release", (state) => appendRuntimeTransition(state, "COORDINATOR", "archive_delivery", []))
     .addEdge(START, "route_entry")
     .addConditionalEdges("route_entry", (state) =>
       state.sourceRepoRoot !== state.productRoot ? "legacy_bootstrap" : "classify_intake",
@@ -839,7 +904,8 @@ export function buildGraceWorkflow() {
     .addEdge("legacy_scan", "legacy_contracts")
     .addEdge("legacy_contracts", "legacy_trace_seed")
     .addEdge("legacy_trace_seed", "legacy_slice_proposal")
-    .addEdge("legacy_slice_proposal", "legacy_evidence_gate")
+    .addEdge("legacy_slice_proposal", "legacy_dry_run")
+    .addEdge("legacy_dry_run", "legacy_evidence_gate")
     .addConditionalEdges("legacy_evidence_gate", (state) =>
       state.currentState === "LEGACY_SLICE_READY" ? END : END,
     )
@@ -861,7 +927,9 @@ export function buildGraceWorkflow() {
     .addConditionalEdges("traceability_gate", (state) =>
       state.currentState === "TRACEABILITY_PASSED" ? "release_ready" : END,
     )
-    .addEdge("release_ready", END);
+    .addEdge("release_ready", "deliver_release")
+    .addEdge("deliver_release", "archive_release")
+    .addEdge("archive_release", END);
 
   return graph.compile({ checkpointer: new MemorySaver() });
 }
@@ -1032,36 +1100,28 @@ export function resumeGraceWorkflow(
     });
     return {
       currentState: recovery.currentState,
-      transitionHistory: [
-        ...(approve.transitionHistory ?? []),
-        ...(draft.transitionHistory ?? []),
-        ...(branch.transitionHistory ?? []),
-        ...(issued.transitionHistory ?? []),
-        ...(activate.transitionHistory ?? []),
-        ...(submit.transitionHistory ?? []),
-        ...(startVerification.transitionHistory ?? []),
-        ...(fail.transitionHistory ?? []),
-        ...(capture.transitionHistory ?? []),
-        ...recovery.transitionHistory,
-      ],
-      artifactHistory: [
-        ...(approve.artifactHistory ?? []),
-        ...(draft.artifactHistory ?? []),
-        ...(branch.artifactHistory ?? []),
-        ...(issued.artifactHistory ?? []),
-        ...(activate.artifactHistory ?? []),
-        ...(submit.artifactHistory ?? []),
-        ...(startVerification.artifactHistory ?? []),
-        ...(fail.artifactHistory ?? []),
-        ...(capture.artifactHistory ?? []),
-        ...recovery.artifactRefs,
-      ],
-      issueReportRefs: [
-        ...(approve.issueReportRefs ?? []),
-        ...(issued.issueReportRefs ?? []),
-        ...(fail.issueReportRefs ?? []),
-        ...(capture.issueReportRefs ?? []),
-      ],
+      ...mergeGraphUpdates(
+        approve,
+        draft,
+        branch,
+        issued,
+        activate,
+        submit,
+        startVerification,
+        fail,
+        capture,
+        {
+          currentState: recovery.currentState,
+          transitionHistory: recovery.transitionHistory,
+          artifactHistory: recovery.artifactRefs,
+          issueReportRefs: [
+            ...(approve.issueReportRefs ?? []),
+            ...(issued.issueReportRefs ?? []),
+            ...(fail.issueReportRefs ?? []),
+            ...(capture.issueReportRefs ?? []),
+          ],
+        },
+      ),
     };
   }
 
@@ -1081,36 +1141,18 @@ export function resumeGraceWorkflow(
     const fail = transitionUpdate({ ...submittedState, ...startVerification, ...pass }, "COORDINATOR", "record_living_doc_fail", [
       livingDocValidation.artifactRef ?? graphInput.livingDocReportRef,
     ]);
-    const capture = transitionUpdate({ ...submittedState, ...startVerification, ...pass, ...fail }, "COORDINATOR", "capture_failure", [
+    const reject = transitionUpdate(
+      { ...submittedState, ...startVerification, ...pass, ...fail },
+      "COORDINATOR",
+      "reject_coder_output",
+      [graphInput.cwoRef, livingDocValidation.artifactRef ?? graphInput.livingDocReportRef],
+    );
+    const reissue = transitionUpdate({ ...submittedState, ...startVerification, ...pass, ...fail, ...reject }, "COORDINATOR", "split_scope_and_reissue_cwo", [
+      graphInput.cwoRef,
       livingDocValidation.artifactRef ?? graphInput.livingDocReportRef,
     ]);
     return {
-      currentState: capture.currentState,
-      transitionHistory: [
-        ...(approve.transitionHistory ?? []),
-        ...(draft.transitionHistory ?? []),
-        ...(branch.transitionHistory ?? []),
-        ...(issued.transitionHistory ?? []),
-        ...(activate.transitionHistory ?? []),
-        ...(submit.transitionHistory ?? []),
-        ...(startVerification.transitionHistory ?? []),
-        ...(pass.transitionHistory ?? []),
-        ...(fail.transitionHistory ?? []),
-        ...(capture.transitionHistory ?? []),
-      ],
-      artifactHistory: [
-        ...(approve.artifactHistory ?? []),
-        ...(draft.artifactHistory ?? []),
-        ...(branch.artifactHistory ?? []),
-        ...(issued.artifactHistory ?? []),
-        ...(activate.artifactHistory ?? []),
-        ...(submit.artifactHistory ?? []),
-        ...(startVerification.artifactHistory ?? []),
-        ...(pass.artifactHistory ?? []),
-        ...(fail.artifactHistory ?? []),
-        ...(capture.artifactHistory ?? []),
-      ],
-      issueReportRefs: [...(fail.issueReportRefs ?? []), ...(capture.issueReportRefs ?? [])],
+      ...mergeGraphUpdates(approve, draft, branch, issued, activate, submit, startVerification, pass, fail, reject, reissue),
     };
   }
   const validation = validateTransitionEvidence({
@@ -1123,34 +1165,17 @@ export function resumeGraceWorkflow(
   });
   if (!validation.ok) {
     const fail = transitionUpdate({ ...submittedState, ...startVerification, ...pass }, "COORDINATOR", "record_traceability_fail", []);
-    const capture = transitionUpdate({ ...submittedState, ...startVerification, ...pass, ...fail }, "COORDINATOR", "capture_failure", []);
+    const reject = transitionUpdate(
+      { ...submittedState, ...startVerification, ...pass, ...fail },
+      "COORDINATOR",
+      "reject_coder_output",
+      [graphInput.cwoRef],
+    );
+    const reissue = transitionUpdate({ ...submittedState, ...startVerification, ...pass, ...fail, ...reject }, "COORDINATOR", "split_scope_and_reissue_cwo", [
+      graphInput.cwoRef,
+    ]);
     return {
-      currentState: capture.currentState,
-      transitionHistory: [
-        ...(approve.transitionHistory ?? []),
-        ...(draft.transitionHistory ?? []),
-        ...(branch.transitionHistory ?? []),
-        ...(issued.transitionHistory ?? []),
-        ...(activate.transitionHistory ?? []),
-        ...(submit.transitionHistory ?? []),
-        ...(startVerification.transitionHistory ?? []),
-        ...(pass.transitionHistory ?? []),
-        ...(fail.transitionHistory ?? []),
-        ...(capture.transitionHistory ?? []),
-      ],
-      artifactHistory: [
-        ...(approve.artifactHistory ?? []),
-        ...(draft.artifactHistory ?? []),
-        ...(branch.artifactHistory ?? []),
-        ...(issued.artifactHistory ?? []),
-        ...(activate.artifactHistory ?? []),
-        ...(submit.artifactHistory ?? []),
-        ...(startVerification.artifactHistory ?? []),
-        ...(pass.artifactHistory ?? []),
-        ...(fail.artifactHistory ?? []),
-        ...(capture.artifactHistory ?? []),
-      ],
-      issueReportRefs: [...(fail.issueReportRefs ?? []), ...(capture.issueReportRefs ?? [])],
+      ...mergeGraphUpdates(approve, draft, branch, issued, activate, submit, startVerification, pass, fail, reject, reissue),
     };
   }
 
@@ -1163,67 +1188,50 @@ export function resumeGraceWorkflow(
   });
   if (!agentEvidence.ok) {
     const fail = transitionUpdate({ ...submittedState, ...startVerification, ...pass }, "COORDINATOR", "record_traceability_fail", agentEvidence.artifactRefs);
-    const capture = transitionUpdate({ ...submittedState, ...startVerification, ...pass, ...fail }, "COORDINATOR", "capture_failure", agentEvidence.artifactRefs);
+    const reject = transitionUpdate(
+      { ...submittedState, ...startVerification, ...pass, ...fail },
+      "COORDINATOR",
+      "reject_coder_output",
+      [graphInput.cwoRef, ...agentEvidence.artifactRefs],
+    );
+    const reissue = transitionUpdate({ ...submittedState, ...startVerification, ...pass, ...fail, ...reject }, "COORDINATOR", "split_scope_and_reissue_cwo", [
+      graphInput.cwoRef,
+      ...agentEvidence.artifactRefs,
+    ]);
     return {
-      currentState: capture.currentState,
-      transitionHistory: [
-        ...(approve.transitionHistory ?? []),
-        ...(draft.transitionHistory ?? []),
-        ...(branch.transitionHistory ?? []),
-        ...(issued.transitionHistory ?? []),
-        ...(activate.transitionHistory ?? []),
-        ...(submit.transitionHistory ?? []),
-        ...(startVerification.transitionHistory ?? []),
-        ...(pass.transitionHistory ?? []),
-        ...(fail.transitionHistory ?? []),
-        ...(capture.transitionHistory ?? []),
-      ],
-      artifactHistory: [
-        ...(approve.artifactHistory ?? []),
-        ...(draft.artifactHistory ?? []),
-        ...(branch.artifactHistory ?? []),
-        ...(issued.artifactHistory ?? []),
-        ...(activate.artifactHistory ?? []),
-        ...(submit.artifactHistory ?? []),
-        ...(startVerification.artifactHistory ?? []),
-        ...(pass.artifactHistory ?? []),
-        ...agentEvidence.artifactRefs,
-        ...(fail.artifactHistory ?? []),
-        ...(capture.artifactHistory ?? []),
-      ],
-      issueReportRefs: [...(fail.issueReportRefs ?? []), ...(capture.issueReportRefs ?? [])],
+      ...mergeGraphUpdates(approve, draft, branch, issued, activate, submit, startVerification, pass, fail, reject, reissue),
     };
   }
 
   const tracePass = transitionUpdate({ ...submittedState, ...startVerification, ...pass }, "COORDINATOR", "record_traceability_pass", []);
   const release = transitionUpdate({ ...submittedState, ...startVerification, ...pass, ...tracePass }, "COORDINATOR", "mark_ready_for_release", []);
+  const delivered = transitionUpdate({ ...submittedState, ...startVerification, ...pass, ...tracePass, ...release }, "COORDINATOR", "mark_delivered", []);
+  const archived = transitionUpdate(
+    { ...submittedState, ...startVerification, ...pass, ...tracePass, ...release, ...delivered },
+    "COORDINATOR",
+    "archive_delivery",
+    [],
+  );
   return {
-    currentState: release.currentState,
-    transitionHistory: [
-      ...(approve.transitionHistory ?? []),
-      ...(draft.transitionHistory ?? []),
-      ...(branch.transitionHistory ?? []),
-      ...(issued.transitionHistory ?? []),
-      ...(activate.transitionHistory ?? []),
-      ...(submit.transitionHistory ?? []),
-      ...(startVerification.transitionHistory ?? []),
-      ...(pass.transitionHistory ?? []),
-      ...(tracePass.transitionHistory ?? []),
-      ...(release.transitionHistory ?? []),
-    ],
-    artifactHistory: [
-      ...(approve.artifactHistory ?? []),
-      ...(draft.artifactHistory ?? []),
-      ...(branch.artifactHistory ?? []),
-      ...(issued.artifactHistory ?? []),
-      ...(activate.artifactHistory ?? []),
-      ...(submit.artifactHistory ?? []),
-      ...(startVerification.artifactHistory ?? []),
-      ...(pass.artifactHistory ?? []),
-      ...(livingDocValidation.artifactRef ? [livingDocValidation.artifactRef] : []),
-      ...(tracePass.artifactHistory ?? []),
-      ...(release.artifactHistory ?? []),
-    ],
-    issueReportRefs: [...(approve.issueReportRefs ?? []), ...(issued.issueReportRefs ?? [])],
+    ...mergeGraphUpdates(
+      approve,
+      draft,
+      branch,
+      issued,
+      activate,
+      submit,
+      startVerification,
+      pass,
+      {
+        artifactHistory: livingDocValidation.artifactRef ? [livingDocValidation.artifactRef] : [],
+      },
+      tracePass,
+      release,
+      delivered,
+      archived,
+      {
+        issueReportRefs: [...(approve.issueReportRefs ?? []), ...(issued.issueReportRefs ?? [])],
+      },
+    ),
   };
 }

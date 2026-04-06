@@ -69,7 +69,7 @@ async function collectStreamChunks(streamPromise: Promise<AsyncIterable<unknown>
   return chunks;
 }
 
-test("FC-grace-graph-buildWorkflow interrupts at the approval boundary and resumes to READY_FOR_RELEASE", async () => {
+test("FC-grace-graph-buildWorkflow interrupts at the approval boundary and resumes through delivery to ARCHIVED", async () => {
   const dir = mkdtempSync(join(tmpdir(), "grace-graph-"));
   const graph = buildGraceWorkflow();
   const config = { configurable: { thread_id: "grace-thread-pass" } };
@@ -96,8 +96,8 @@ test("FC-grace-graph-buildWorkflow interrupts at the approval boundary and resum
     graph.invoke(new Command({ resume: { approved: true } }), config),
   );
 
-  assert.equal(result.currentState, "READY_FOR_RELEASE");
-  assert.match(readFileSync(join(dir, "WorkflowState.json"), "utf8"), /READY_FOR_RELEASE/u);
+  assert.equal(result.currentState, "ARCHIVED");
+  assert.match(readFileSync(join(dir, "WorkflowState.json"), "utf8"), /ARCHIVED/u);
   assert.match(readFileSync(join(dir, "living-doc-report.json"), "utf8"), /grace-living-doc-report-v1/u);
 });
 
@@ -207,4 +207,41 @@ test("FC-grace-graph-buildWorkflow routes legacy overlays to slice-ready onboard
 
   assert.equal(result.currentState, "LEGACY_SLICE_READY");
   assert.match(readFileSync(join(productRoot, "docs", "grace", "reports", "LegacySlicePlan.json"), "utf8"), /grace-legacy-slice-plan-v1/u);
+  assert.match(readFileSync(join(productRoot, "docs", "grace", "reports", "LegacyEditDryRun.json"), "utf8"), /grace-legacy-edit-dry-run-v1/u);
+});
+
+test("FC-grace-graph-buildWorkflow routes living-doc failure into coder rejection and CWO reissue drafting", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "grace-graph-living-doc-fail-"));
+  const graph = buildGraceWorkflow();
+  const config = { configurable: { thread_id: "grace-thread-living-doc-fail" } };
+  const brokenRequirements = join(dir, "RequirementsAnalysis.xml");
+  writeFileSync(
+    brokenRequirements,
+    "<RequirementsAnalysis><UseCase id=\"UC-BROKEN\" /></RequirementsAnalysis>\n",
+    "utf8",
+  );
+
+  await withMutedConsoleError(() =>
+    collectStreamChunks(
+      graph.stream(
+        {
+          ...buildInput(dir, "pass"),
+          requirementsFile: brokenRequirements,
+          currentState: null,
+          approvalDecision: null,
+          transitionHistory: [],
+          artifactHistory: [],
+          issueReportRefs: [],
+        },
+        config,
+      ),
+    ),
+  );
+
+  const result = await withMutedConsoleError(() =>
+    graph.invoke(new Command({ resume: { approved: true } }), config),
+  );
+
+  assert.equal(result.currentState, "CWO_DRAFTING");
+  assert.match(readFileSync(join(dir, "WorkflowState.json"), "utf8"), /CWO_DRAFTING/u);
 });

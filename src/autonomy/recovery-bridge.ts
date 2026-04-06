@@ -1,5 +1,7 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { ensureParentDir, readJsonIfExists } from "../runtime/fs-utils.js";
+import { emitGraceRuntimeLog } from "../runtime/runtime-log.js";
 import { applyTransition } from "../state/transition-engine.js";
 import type { AutonomyRecoveryInput, AutonomyRecoveryResult } from "./index.js";
 
@@ -63,39 +65,19 @@ function graceRuntimeLog(entry: {
   belief: string;
   fact: Record<string, unknown>;
 }): void {
-  console.error(
-    JSON.stringify({
-      ts: new Date().toISOString(),
-      layer: "runtime",
-      mc: MC_GRACE_AUTONOMY_BRIDGE,
-      fc: FC_GRACE_AUTONOMY_EXECUTE_RECOVERY,
-      ...entry,
-    }),
-  );
-}
-
-function ensureParentDir(filePath: string): void {
-  mkdirSync(dirname(filePath), { recursive: true });
+  emitGraceRuntimeLog({
+    mc: MC_GRACE_AUTONOMY_BRIDGE,
+    fc: FC_GRACE_AUTONOMY_EXECUTE_RECOVERY,
+    ...entry,
+  });
 }
 
 function loadFailureMemory(memoryFile: string): FailureMemoryDocument {
-  if (!readFileSafe(memoryFile)) {
-    return {
-      schemaVersion: "grace-failure-memory-v1",
-      generatedAt: new Date().toISOString(),
-      records: [],
-    };
-  }
-  return JSON.parse(readFileSync(memoryFile, "utf8")) as FailureMemoryDocument;
-}
-
-function readFileSafe(filePath: string): boolean {
-  try {
-    readFileSync(filePath, "utf8");
-    return true;
-  } catch {
-    return false;
-  }
+  return readJsonIfExists<FailureMemoryDocument>(memoryFile) ?? {
+    schemaVersion: "grace-failure-memory-v1",
+    generatedAt: new Date().toISOString(),
+    records: [],
+  };
 }
 
 function saveJson(filePath: string, value: unknown): void {

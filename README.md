@@ -1,243 +1,57 @@
-# 🪐 GRACE Framework
+# GRACE Framework
 
-> **Production-grade framework для управляемой AI-разработки.** 
-> Ультимативный инструмент для безопасной интеграции AI-агентов (LLM) в цикл создания и поддержки программного обеспечения через детерминированный контроль состояний, строгую контрактную маршрутизацию, изолированное выполнение ролей (bounded execution) и встроенный MCP-сервер.
+GRACE is a framework-first runtime for governed AI-assisted development. It combines a deterministic workflow graph, bounded agent execution, evidence-based validation, and an MCP surface for IDE integration.
 
----
+## Why it exists
 
-![Node.js](https://img.shields.io/badge/Node.js-24%2B-339933?style=flat-square&logo=node.js&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![LangGraph](https://img.shields.io/badge/LangGraph-Workflow%20Runtime-121212?style=flat-square)
-![MCP](https://img.shields.io/badge/MCP-stdio%20%2B%20HTTP-0A7CFF?style=flat-square)
-![Traceability](https://img.shields.io/badge/Traceability-UC%20%7C%20MC%20%7C%20FC%20%7C%20BA-7C3AED?style=flat-square)
-![Legacy](https://img.shields.io/badge/Legacy-Onboarding-059669?style=flat-square)
+The project is built to keep AI work auditable and predictable. The workflow is state-driven, transitions are policy-guarded, and every important step emits durable evidence.
 
----
+## Framework-first layout
 
-## 📖 Содержание
-1. [Про проблематику и концепцию GRACE](#-зачем-нужен-grace)
-2. [Фундаментальные принципы](#-фундаментальные-дизайн-принципы)
-3. [Ролевая Модель и Исполнение](#-ролевая-модель-bounded-swarm-runtime)
-4. [Движок Состояний (LangGraph)](#-движок-состояний-и-рабочие-процессы-workflow-runtime)
-5. [Безопасность и Валидация](#-validation-layer-и-модель-безопасности)
-6. [Интеграция с Legacy-системами](#-legacy-onboarding-безопасная-работа-с-существующим-кодом)
-7. [Архитектура и Устройство](#-архитектура-репозитория)
-8. [MCP Сервер и Управление](#-mcp-сервер-управление-извне)
-9. [Справочник Команд (Установка, Запуск, Тесты)](#%EF%B8%8F-установка-тестирование-и-запуск)
+The repository is organized around the framework itself, not around one sample product.
 
----
+- `src/` contains the core runtime, state machine, policies, validators, agents, and CLI adapters.
+- `tools/` contains standalone framework utilities for validation, traceability, and evidence generation.
+- `mcp/` contains the MCP server package and its HTTP transport.
+- `docs/grace/` contains the living framework documents, schemas, and policy files.
+- `agents/` contains role prompts, skills, and execution templates.
 
-## 🎯 Зачем нужен GRACE?
+## Skill-first runtime
 
-Добавление AI в процесс разработки программного обеспечения часто сводится к хаотичному "Prompt Engineering", где агент работает как "черный ящик": он может случайно удалить важный файл, проигнорировать архитектурные стандарты проекта или потерять изначальный контекст на полпути. 
+GRACE is skill-first. Agent roles do not rely on hidden prompt behavior; they load explicit skills, bounded execution windows, and traceable execution artifacts.
 
-**GRACE** решает проблему недостаточного контроля. Он превращает работу нейросетей-агентов в детерминированный, проверяемый и прогнозируемый процесс. 
+The main roles are:
 
-Сценарии применения GRACE:
-- **Greenfield проекты:** Создание нового продукта с нуля, где каждый шаг алгоритмически задокументирован.
-- **Brownfield / Legacy:** Аудит, рефакторинг и постепенная модернизация существующей кодовой базы без прямого деструктивного вмешательства в исходники.
-- **Интеграционный слой:** Предоставление внешним IDE (через MCP) надежного "control plane" для взаимодействия с вашим кодом через ИИ.
+- `Architect`
+- `Coordinator`
+- `Coder`
 
----
+Each role runs inside a narrow contract surface and leaves execution evidence behind.
 
-## 🧠 Фундаментальные дизайн-принципы
+## Examples
 
-### 1. Workflow-First Execution (Машина состояний превыше всего)
-В основе GRACE лежит строгая система переходов (State Machine). Агент не может "случайно" начать писать код, если процесс находится на стадии "Blueprint Review" (ревью архитектуры).
-Любой переход в системе определяется:
-- Текущим состоянием (State).
-- Ролью агента (Actor Role).
-- Обязательными наборами политик (Policies).
-- Наличием требуемых артефактов (созданных ранее).
-- Разрешенным для редактирования "Semantic Scope".
+Typical local commands:
 
-### 2. Контрактная адресация кода (Contract Addressability)
-Чтобы LLM понимали, где они находятся и что они меняют, GRACE запрещает прямую работу со случайными директориями в пользу строгих контрактов:
-- **UC (Use Case)** — высокоуровневые бизнес-сценарии.
-- **MC (Module Contract)** — контракты ответственности на уровне архитектурных модулей.
-- **FC (Function Contract)** — контракты на уровне отдельных функций, классов или интерфейсов.
-- **BA (Block Anchor)** — точечные семантические якоря глубоко в логике.
-
-### 3. Evidence Before Promotion (Доказательства прежде действий)
-Ни один значимый шаг (переход стейт-машины) не происходит только "по слову" агента. Фреймворк требует материализованных доказательств, которые сохраняются в машиночитаемом виде:
-* `TaskPacket` — что конкретно было поручено агенту.
-* `Invocation` — с каким контекстом и параметрами он был вызван.
-* `Execution` — логирование самого процесса выполнения (thought process).
-* `SkillTrace` — фиксация применения навыков (каких API или инструментов коснулся агент в процессе работы).
-
----
-
-## 🎭 Ролевая модель (Bounded Swarm Runtime)
-
-Вместо одного "универсального" агента, GRACE распределяет ответственность. Архитектура роя ограничивает радиус поражения при галлюцинациях нейросетей:
-
-1. 🏛️ **Architect**
-   * **Роль:** Стратегическое планирование и проектирование.
-   * **Обязанности:** Создание драфтов архитектуры, анализ бизнес-требований, выделение модулей (`MC`). Не пишет функциональный бизнес-код.
-2. 👨‍✈️ **Coordinator**
-   * **Роль:** Дирижер и менеджер процессов.
-   * **Обязанности:** Маршрутизация задач, обработка блокировок состояния (blocker states), инициирование fallback-сценариев, проверка полноты "событий" (evidence) перед передачей эстафеты программисту.
-3. 🧑‍💻 **Coder**
-   * **Роль:** Изолированный исполнитель.
-   * **Обязанности:** Написание кода *строго* в рамках утвержденного контракта (`FC`/`BA`). Не имеет права менять общую систему сборки или фундаментальные архитектурные документы, если это напрямую не разрешено политикой.
-
----
-
-## 🚦 Движок состояний и рабочие процессы (Workflow Runtime)
-
-Под капотом используется **LangGraph**, но GRACE существенно расширяет его возможности:
-- **Interrupt/Resume (Модель прерываний):** Приостановка процесса для запроса человеческого одобрения (Approval Gateway). 
-- **Blocker States:** Безопасная парковка процесса при фатальной ошибке, петле (loop) или недостатке контекста с возможностью восстановления (Failure Memory).
-- **Approval / Reject Pipelines:** Бизнес-логика принятия и возврата задач на доработку внутри цепочки ролей.
-
-### Типовой жизненный цикл продукта (Product Path):
-1. Пакет требований (`Intake`) получен и классифицирован.
-2. Проектирование черновика системы (`Blueprint drafting`).
-3. Ревью архитектуры (`Blueprint review`) ➡️ Инженерное одобрение (`Approved`).
-4. Предложение точки передачи задач кодеру (`Handoff proposed`).
-5. **Approval Boundary** (Точка ручного или автоматического контроля).
-6. Работа агента-кодера (`Coder execution`).
-7. Глубокая верификация по артефактам (`Verification and Traceability checks`).
-8. `Release Readiness` (Готовность к релизу).
-
----
-
-## 🛡 Validation Layer и Модель Безопасности
-
-**Безопасность достигается не "промптами", а захардкоденными policy limits (Ограничениями в рамках кода).**
-
-Фреймворк включает набор строгих Validators:
-- **Living Documents Validator:** Проверяет, что файлы `RequirementsAnalysis.xml`, `Technology.xml`, `DevelopmentPlan.xml` всегда консистентны обновляемой кодовой базе.
-- **Agent Evidence Validator:** Удостоверяется, что инстанс роли не пропустил шаг трассировки и оставил логи вызовов перед завершением.
-- **Policy/Schema Validator:** Блокирует любые попытки изменения файлов, не входящих в `Editable Whitelist`, а также защищает от нарушения JSON-схем.
-
-> **Что гарантирует система?**
-> GRACE защищает от uncontrolled workflow promotion, out-of-scope edits (ползания агента туда, куда не просили) и drift-а (рассинхрона между требованиями и реальным кодом). Тем не менее, окончательное ревью инженером-человеком (Human in the loop) для коммита в главную ветку остается фундаментальным правилом.
-
----
-
-## 🚀 Legacy Onboarding (Безопасная работа с существующим кодом)
-
-Для существующих репозиториев ("Legacy"), бесконтрольный доступ недопустим. Производится управляемая интеграция (overlay mode).
-
-**Жизненный цикл Legacy Workflow:**
-1. `BOOTSTRAP`: Создается отдельный **Overlay Workspace**. Основной код проекта (source) временно не трогают.
-2. `SCAN & REPORT`: Фреймворк анализирует AST существующей базы и генерирует формальный отчет о рисках (Risk Report).
-3. `CONTRACT INFERENCE`: Автоматически "вытягиваются" все неявные контракты старой кодовой базы и помещаются в графовый реестр (Graph Registry).
-4. `SLICE PROPOSAL`: Формируется "безопасный срез" (Slice) кода пространства, выбранный для рефакторинга или частичного улучшения.
-5. **Dry-Run Validation:** Прогоняется симуляция изменения кода без физической записи файлов (своеобразный plan review).
-6. **Governed Edit Execution:** Если Dry-Run полностью успешен и запись авторизована в `whitelist` — агент получает ограниченное право обновить конкретные legacy-файлы.
-
----
-
-## 🔌 MCP Сервер (Управление извне)
-
-GRACE включает полноправный **Model Context Protocol (MCP)** сервер для интеграции со внешними AI-средами (например, обвязки IDE, Claude Desktop, Cursor).
-
-**Возможности MCP endpoints:**
-- Чтение состояния (State Reads), просмотр действующих блокировок (Blockers) и логов трассировок (Traces).
-- Вызов Workflow-инструментов, управление жизненным циклом напрямую через интерфейсы ИИ-медиатора.
-- Доступ к файлам отчетов (Artifact, Risk Report) и анализ Agent Evidence.
-- Операции симуляции (Dry-run validators) для Legacy Mode.
-
-**Режимы MCP-транспорта:**
-- **`stdio`**: запуск как классического дочернего процесса.
-- **`HTTP POST`**: работа как выделенный удаленный сервер с аутентификацией (Bearer Token), rate limit'ами, настройками CORS и валидацией заголовков `x-grace-mcp-protocol-version`.
-
----
-
-## 📂 Архитектура репозитория
-
-```text
-grace/
-├── agents/        # Ролевые конфигураторы, общие протоколы взаимодействия и mode-specific навыки (Skills)
-├── docs/grace/    # Эталонная документация системы (Versioned Truth)
-│   ├── policies/    # Правила валидации, переходов, доступа к файлам
-│   ├── schema/      # Валидационные схемы
-│   └── templates/   # XML / Markdown шаблоны для генерации артефактов
-├── mcp/           # Изолированный Node.js пакет MCP-сервера
-├── src/           # Сердце GRACE
-│   ├── autonomy/    # Failure memory (Память об ошибках), forced context, loop guard bridges
-│   ├── graph/       # Интеграция с LangGraph (State management)
-│   ├── legacy/      # Bootstrap, сканирование и contract inference для Legacy 
-│   ├── validators/  # Код логических валидаторов (Validation Layer)
-│   └── executors/   # Песочницы для запуска ролей (Architect, Coordinator, Coder)
-├── tools/         # CLI утилиты (grace-init, validate, verify, trace info)
-├── package.json   # Base deps, script commands
-└── README.md      # Этот файл
-```
-
-> ⚠️ **Runtime Артефакты**: Папки вроде `handoffs/`, `reports/`, `executions/`, `state/`, а также логи переходов (`Approvals.log` и `TransitionLog.jsonl`) в директории `docs/grace/` будут исключены из git (через `.gitignore`), так как являются динамически генерируемыми следами (Operational Artifacts) конкретной сессии, а не самим исходным кодом.
-
----
-
-## ⚙️ Установка, Тестирование и Запуск
-
-### Требования к окружению
-- Основной проект: `Node.js >= 24`
-- MCP Пакет: `Node.js >= 20`
-- `npm` и `git`
-
-### 1. Установка зависимостей и Сборка
 ```bash
-# Установка всех зависимостей проекта и MCP-сервера
-npm install
-npm --prefix mcp install
-
-# Компиляция ядра и CLI инструментов (TypeScript -> JS)
-npm run build
-npm run build:tools
-
-# Компиляция MCP сервера
-npm run mcp:build
-```
-
-### 2. Валидация и "Verify Gate"
-Рекомендуется использовать встроенные скрипты качества перед любыми коммитами:
-```bash
-# Точечный запуск unit и интеграционных тестов
-npm run test:core
-npm run test:graph
-npm test # Запустить всё
-
-# Глобальная валидация (проверка наличия эталонной документации, структур файлов, политик)
+npm ci
+npm test
 npm run validate
-
-# 🚀 Full Verify Gate (Build + Test + Validate + MCP Check) - Обязательно перед CI/CD коммитом
-npm run verify
+npm run coverage
+npm --prefix mcp ci
+npm --prefix mcp test
 ```
 
-### 3. Workflow Команды
+Workflow examples:
 
-| Скрипт | Описание |
-|---|---|
-| `npm run workflow:start` | Инициализация базового цикла для нового продукта |
-| `npm run workflow:resume`| Возобновление workflow после человеческого одобрения (approve) в ветках прерывания |
+- Start a workflow with `npm run workflow:start`
+- Resume a workflow with `npm run workflow:resume`
+- Generate traceability evidence with the `tools/` scripts
 
-### 4. Конфигурация сервера MCP (HTTP Production Profile)
+## Validation
 
-Для работы MCP в режиме HTTP рекомендуется использовать строгие лимиты и заголовки маршрутизации. Пример конфигурации через скрипты:
+The framework ships with validators for workflow state, transition evidence, living documents, policy/schema consistency, and agent evidence. The goal is to fail closed when workflow rules or documentation drift.
 
-```bash
-# Для командной оболочки Windows (cmd / powershell):
-set GRACE_MCP_AUTH_TOKEN="replace-with-long-random-token" # Ключ Bearer для доступа
-set GRACE_MCP_PROTOCOL_VERSION="2026-04-05"           # Версия протокола API
-set GRACE_MCP_REQUIRE_VERSION_HEADER="true"           # Strict HTTP заголовки
-set GRACE_MCP_MAX_BODY_BYTES="1048576"                # Ограничение Payload (1 МБ)
-set GRACE_MCP_RATE_LIMIT_PER_MINUTE="60"              # In-memory защита от DDOS / Spam
-set GRACE_MCP_REQUEST_TIMEOUT_MS="30000"              # Таймаут запросов
-set PORT="3001"                                       # HTTP Порт
+## Contributing
 
-# Для Linux / macOS:
-export GRACE_MCP_AUTH_TOKEN="replace-with-long-random-token"
-# (...и так далее)
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for local setup and change rules.
 
-# Непосредственный запуск
-npm run mcp:start:http
-```
-
-_(Также доступен запуск через `npm run mcp:start` для работы локального ИИ агента по каналу обычного `stdio`)_
-
----
-
-**Built with discipline. Works with GRACE.**

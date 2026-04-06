@@ -17,11 +17,16 @@ test("grace-mcp resolves HTTP port deterministically", () => {
 test("grace-mcp HTTP server exposes /mcp and rejects unsupported GET", async () => {
   const server = await startGraceMcpHttpServer(0);
   try {
-    const response = await fetch(`http://127.0.0.1:${server.port}/mcp`);
+    const response = await fetch(`http://127.0.0.1:${server.port}/mcp`, {
+      headers: {
+        origin: "https://app.example.com",
+      },
+    });
     const body = await response.text();
     assert.equal(response.status, 405);
     assert.match(body, /Method not allowed/u);
     assert.equal(response.headers.get("x-grace-mcp-server-name"), "grace-mcp");
+    assert.equal(response.headers.get("access-control-allow-origin"), null);
   } finally {
     await server.close();
   }
@@ -73,6 +78,53 @@ test("grace-mcp HTTP server can require protocol version headers", async () => {
     const mismatchBody = await mismatchResponse.text();
     assert.equal(mismatchResponse.status, 400);
     assert.match(mismatchBody, /Protocol version mismatch/u);
+  } finally {
+    await server.close();
+  }
+});
+
+test("grace-mcp HTTP server only emits CORS headers for configured origins", async () => {
+  const config = resolveGraceMcpRuntimeConfig({
+    GRACE_MCP_CORS_ALLOWED_ORIGINS: "https://app.example.com",
+    GRACE_MCP_CORS_ALLOW_CREDENTIALS: "true",
+  });
+  const server = await startGraceMcpHttpServer(0, config);
+  try {
+    const response = await fetch(`http://127.0.0.1:${server.port}/mcp`, {
+      method: "GET",
+      headers: {
+        origin: "https://app.example.com",
+      },
+    });
+    const body = await response.text();
+    assert.equal(response.status, 405);
+    assert.match(body, /Method not allowed/u);
+    assert.equal(response.headers.get("access-control-allow-origin"), "https://app.example.com");
+    assert.equal(response.headers.get("access-control-allow-credentials"), "true");
+    assert.equal(response.headers.get("vary"), "Origin");
+  } finally {
+    await server.close();
+  }
+});
+
+test("grace-mcp HTTP server answers CORS preflight for allowed origins", async () => {
+  const config = resolveGraceMcpRuntimeConfig({
+    GRACE_MCP_CORS_ALLOWED_ORIGINS: "https://app.example.com",
+  });
+  const server = await startGraceMcpHttpServer(0, config);
+  try {
+    const response = await fetch(`http://127.0.0.1:${server.port}/mcp`, {
+      method: "OPTIONS",
+      headers: {
+        origin: "https://app.example.com",
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "content-type, authorization",
+      },
+    });
+    assert.equal(response.status, 204);
+    assert.equal(response.headers.get("access-control-allow-origin"), "https://app.example.com");
+    assert.equal(response.headers.get("access-control-allow-methods"), "POST, OPTIONS");
+    assert.match(response.headers.get("access-control-allow-headers") ?? "", /authorization/u);
   } finally {
     await server.close();
   }
