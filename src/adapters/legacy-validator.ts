@@ -1,6 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { ensureParentDir } from "../runtime/fs-utils.js";
+import { createGraceRuntimeLogger } from "../runtime/runtime-log.js";
 import type {
   LegacyValidatorFailure,
   LegacyValidatorInput,
@@ -19,25 +21,10 @@ const FC_GRACE_ADAPTERS_RUN_LEGACY_VALIDATOR = "FC-grace-adapters-runLegacyValid
 const BA_GRACE_RUN_LEGACY_COMMAND = "BA-grace-run-legacy-command";
 const BA_GRACE_PERSIST_LEGACY_REPORT = "BA-grace-persist-legacy-report";
 
-function graceRuntimeLog(entry: {
-  ba: string;
-  belief: string;
-  fact: Record<string, unknown>;
-}): void {
-  console.error(
-    JSON.stringify({
-      ts: new Date().toISOString(),
-      layer: "runtime",
-      mc: MC_GRACE_V1_ADAPTERS,
-      fc: FC_GRACE_ADAPTERS_RUN_LEGACY_VALIDATOR,
-      ...entry,
-    }),
-  );
-}
-
-function ensureParentDir(filePath: string): void {
-  mkdirSync(dirname(filePath), { recursive: true });
-}
+const graceRuntimeLog = createGraceRuntimeLogger({
+  mc: MC_GRACE_V1_ADAPTERS,
+  fc: FC_GRACE_ADAPTERS_RUN_LEGACY_VALIDATOR,
+});
 
 function buildFailure(code: LegacyValidatorFailure["code"], message: string): LegacyValidatorFailure {
   return { code, message };

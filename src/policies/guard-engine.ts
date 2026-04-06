@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
+import { createGraceRuntimeLogger } from "../runtime/runtime-log.js";
 import type { GuardEvaluationInput, GuardEvaluationResult, GuardFailure, TransitionPolicyDocument, TransitionPolicyRule } from "./index.js";
 
 /**
@@ -37,21 +38,10 @@ const BA_GRACE_ISSUE_BLOCK = "BA-grace-issue-block";
 
 const DEFAULT_POLICY_FILE = "docs/grace/policies/transition-policy.json";
 
-function graceRuntimeLog(entry: {
-  ba: string;
-  belief: string;
-  fact: Record<string, unknown>;
-}): void {
-  console.error(
-    JSON.stringify({
-      ts: new Date().toISOString(),
-      layer: "runtime",
-      mc: MC_GRACE_POLICY_ENGINE,
-      fc: FC_GRACE_POLICY_EVALUATE_GUARDS,
-      ...entry,
-    }),
-  );
-}
+const graceRuntimeLog = createGraceRuntimeLogger({
+  mc: MC_GRACE_POLICY_ENGINE,
+  fc: FC_GRACE_POLICY_EVALUATE_GUARDS,
+});
 
 function buildFailure(code: GuardFailure["code"], message: string): GuardFailure {
   return { code, message };

@@ -15,3 +15,12 @@ export function emitGraceRuntimeLog(entry: GraceRuntimeLogEntry): void {
     }),
   );
 }
+
+export function createGraceRuntimeLogger(context: Pick<GraceRuntimeLogEntry, "mc" | "fc">) {
+  return (entry: Omit<GraceRuntimeLogEntry, "mc" | "fc">): void => {
+    emitGraceRuntimeLog({
+      ...context,
+      ...entry,
+    });
+  };
+}

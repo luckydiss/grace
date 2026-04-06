@@ -206,6 +206,21 @@ export function mergeGraphUpdates(
   };
 }
 
+export function applyGraphUpdateToState(
+  state: WorkflowGraphState,
+  update: WorkflowGraphUpdate,
+): WorkflowGraphState {
+  return {
+    ...state,
+    ...update,
+    currentState: update.currentState ?? state.currentState,
+    approvalDecision: update.approvalDecision ?? state.approvalDecision,
+    transitionHistory: update.transitionHistory ?? state.transitionHistory,
+    artifactHistory: update.artifactHistory ?? state.artifactHistory,
+    issueReportRefs: update.issueReportRefs ?? state.issueReportRefs,
+  };
+}
+
 export function legacyDryRunReady(dryRunFile: string): boolean {
   return existsSync(dryRunFile);
 }

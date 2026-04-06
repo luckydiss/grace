@@ -92,7 +92,7 @@ test("FC-grace-graph-buildWorkflow interrupts at the approval boundary and resum
 
   assert.ok(interruptedChunks.some((chunk) => JSON.stringify(chunk).includes("__interrupt__")));
 
-  const result = await withMutedConsoleError(() =>
+  const result = await withMutedConsoleError<any>(() =>
     graph.invoke(new Command({ resume: { approved: true } }), config),
   );
 
@@ -122,7 +122,7 @@ test("FC-grace-graph-buildWorkflow routes verification failure into governed rem
     ),
   );
 
-  const result = await withMutedConsoleError(() =>
+  const result = await withMutedConsoleError<any>(() =>
     graph.invoke(new Command({ resume: { approved: true } }), config),
   );
 
@@ -155,7 +155,7 @@ test("FC-grace-graph-buildWorkflow routes legacy overlays to slice-ready onboard
   });
 
   const graph = buildGraceWorkflow();
-  const result = await withMutedConsoleError(() =>
+  const result = await withMutedConsoleError<any>(() =>
     graph.invoke(
       {
         repoRoot,
@@ -238,7 +238,7 @@ test("FC-grace-graph-buildWorkflow routes living-doc failure into coder rejectio
     ),
   );
 
-  const result = await withMutedConsoleError(() =>
+  const result = await withMutedConsoleError<any>(() =>
     graph.invoke(new Command({ resume: { approved: true } }), config),
   );
 

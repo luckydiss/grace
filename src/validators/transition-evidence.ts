@@ -8,6 +8,7 @@ import {
   type TransitionEventDocument,
   type WorkflowStateDocument,
 } from "../state/index.js";
+import { createGraceRuntimeLogger } from "../runtime/runtime-log.js";
 import type {
   TransitionEvidenceFailure,
   TransitionEvidenceValidationInput,
@@ -50,21 +51,10 @@ const BA_GRACE_VALIDATE_ARTIFACTS = "BA-grace-validate-artifacts";
 const DEFAULT_STATE_FILE = "docs/grace/state/WorkflowState.json";
 const DEFAULT_EVENT_LOG = "docs/grace/state/TransitionLog.jsonl";
 
-function graceRuntimeLog(entry: {
-  ba: string;
-  belief: string;
-  fact: Record<string, unknown>;
-}): void {
-  console.error(
-    JSON.stringify({
-      ts: new Date().toISOString(),
-      layer: "runtime",
-      mc: MC_GRACE_VALIDATORS,
-      fc: FC_GRACE_VALIDATE_TRANSITION_EVIDENCE,
-      ...entry,
-    }),
-  );
-}
+const graceRuntimeLog = createGraceRuntimeLogger({
+  mc: MC_GRACE_VALIDATORS,
+  fc: FC_GRACE_VALIDATE_TRANSITION_EVIDENCE,
+});
 
 function buildFailure(code: TransitionEvidenceFailure["code"], message: string): TransitionEvidenceFailure {
   return { code, message };
