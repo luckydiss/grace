@@ -3,7 +3,7 @@ import { join, resolve } from "node:path";
 import { applyTransition } from "../state/transition-engine.js";
 import type { WorkflowStateDocument, WorkflowStateName } from "../state/index.js";
 import type { WorkflowOwnedArtifactSpec } from "../artifacts/index.js";
-import { emitGraceRuntimeLog } from "../runtime/runtime-log.js";
+import { createGraceRuntimeLogger } from "../runtime/runtime-log.js";
 import { toRepoArtifactRef } from "../runtime/product-target.js";
 import type { GraceWorkflowInput, GraceWorkflowState } from "./index.js";
 
@@ -14,17 +14,10 @@ const BA_GRACE_ROUTE_MAIN = "BA-grace-route-main";
 export type WorkflowGraphState = GraceWorkflowState;
 export type WorkflowGraphUpdate = Partial<GraceWorkflowState>;
 
-export function graceRuntimeLog(entry: {
-  ba: string;
-  belief: string;
-  fact: Record<string, unknown>;
-}): void {
-  emitGraceRuntimeLog({
-    mc: MC_GRACE_WORKFLOW_CORE,
-    fc: FC_GRACE_GRAPH_BUILD_WORKFLOW,
-    ...entry,
-  });
-}
+export const graceRuntimeLog = createGraceRuntimeLogger({
+  mc: MC_GRACE_WORKFLOW_CORE,
+  fc: FC_GRACE_GRAPH_BUILD_WORKFLOW,
+});
 
 export function transitionUpdate(
   state: WorkflowGraphState,

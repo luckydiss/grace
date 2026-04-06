@@ -31,6 +31,21 @@ export interface AgentEvidenceInput {
   productId?: string;
 }
 
+export interface AgentRunResumeInput {
+  repoRoot: string;
+  stateFile: string;
+  logFile: string;
+  status: "ACTIVE" | "SUCCEEDED" | "FAILED" | "BLOCKED";
+  outputRefs?: string[];
+  sessionId?: string;
+  resumeToken?: string;
+  failureReason?: string;
+  failureCategory?: "TRANSIENT" | "TOOL_FAILURE" | "USER_INTERRUPT" | "SCOPE_VIOLATION" | "POLICY_BLOCK" | "UNKNOWN";
+  retryReason?: string;
+  resumeContextRef?: string;
+  notes?: string[];
+}
+
 export interface ArtifactReadInput {
   productRoot: string;
   relativePath: string;
@@ -615,12 +630,42 @@ export async function validateAgentEvidence(input: AgentEvidenceInput): Promise<
   });
 }
 
+export async function validateAgentRuns(input: AgentEvidenceInput): Promise<Record<string, unknown>> {
+  const repoRoot = resolve(input.repoRoot);
+  const productRoot = resolve(input.productRoot);
+  const state = getWorkflowState(productRoot);
+  const traceId = typeof state.traceId === "string" ? state.traceId : `TRACE-${basename(productRoot).toUpperCase()}-CORE`;
+
+  const module = await importGraceModule<{
+    validateAgentRunEvidence: (args: {
+      repoRoot: string;
+      productId: string;
+      traceId: string;
+      executionDir: string;
+      requiredRoles: Array<"ARCHITECT" | "COORDINATOR" | "CODER">;
+    }) => { ok: boolean; failures: unknown[]; artifactRefs: string[] };
+  }>(repoRoot, "validators/agent-run-evidence.js");
+
+  return module.validateAgentRunEvidence({
+    repoRoot,
+    productId: input.productId ?? basename(productRoot),
+    traceId,
+    executionDir: join(productRoot, "docs", "grace", "executions"),
+    requiredRoles: ["ARCHITECT", "COORDINATOR", "CODER"],
+  });
+}
+
 export async function validateWorkflow(input: WorkflowValidateInput): Promise<Record<string, unknown>> {
   const productRoot = resolve(input.productRoot);
   const state = getWorkflowState(productRoot);
   const blockers = getWorkflowBlockers(productRoot);
   const trace = getWorkflowTrace(productRoot);
   const agentEvidence = await validateAgentEvidence({
+    repoRoot: input.repoRoot,
+    productRoot,
+    productId: input.productId,
+  });
+  const agentRuns = await validateAgentRuns({
     repoRoot: input.repoRoot,
     productRoot,
     productId: input.productId,
@@ -638,7 +683,86 @@ export async function validateWorkflow(input: WorkflowValidateInput): Promise<Re
     blockers,
     trace,
     agentEvidence,
+    agentRuns,
   };
+}
+
+export function getAgentRuns(productRoot: string): Record<string, unknown> {
+  const root = resolve(productRoot);
+  const executionsDir = join(root, "docs", "grace", "executions");
+  const files = listFiles(executionsDir);
+  const stateSummaries = (role: string) =>
+    files
+      .filter((filePath) => basename(filePath).startsWith(role) && basename(filePath).includes("RunState"))
+      .map((filePath) => {
+        const parsed = JSON.parse(readFileSync(filePath, "utf8")) as Record<string, unknown>;
+        return {
+          file: relativeArtifactPath(root, filePath),
+          runId: parsed.runId ?? null,
+          currentStatus: parsed.currentStatus ?? null,
+          nextAction: parsed.nextAction ?? null,
+          retryCount: parsed.retryCount ?? null,
+          retryBudget: parsed.retryBudget ?? null,
+          failureCategory: parsed.failureCategory ?? null,
+          resumeContextRef: parsed.resumeContextRef ?? null,
+          sessionId: parsed.sessionId ?? null,
+          resumeToken: parsed.resumeToken ?? null,
+        };
+      });
+  const group = (role: string, suffix: string) =>
+    files
+      .filter((filePath) => basename(filePath).startsWith(role) && basename(filePath).includes(suffix))
+      .map((filePath) => relativeArtifactPath(root, filePath));
+
+  return {
+    architect: {
+      states: group("Architect", "RunState"),
+      logs: group("Architect", "RunLog"),
+      summaries: stateSummaries("Architect"),
+    },
+    coordinator: {
+      states: group("Coordinator", "RunState"),
+      logs: group("Coordinator", "RunLog"),
+      summaries: stateSummaries("Coordinator"),
+    },
+    coder: {
+      states: group("Coder", "RunState"),
+      logs: group("Coder", "RunLog"),
+      summaries: stateSummaries("Coder"),
+    },
+  };
+}
+
+export async function resumeAgentRun(input: AgentRunResumeInput): Promise<Record<string, unknown>> {
+  const module = await importGraceModule<{
+    updateAgentRun: (args: {
+      stateFile: string;
+      logFile: string;
+      status: "ACTIVE" | "SUCCEEDED" | "FAILED" | "BLOCKED";
+      outputRefs?: string[];
+      sessionId?: string | null;
+      resumeToken?: string | null;
+      failureReason?: string | null;
+      failureCategory?: "TRANSIENT" | "TOOL_FAILURE" | "USER_INTERRUPT" | "SCOPE_VIOLATION" | "POLICY_BLOCK" | "UNKNOWN" | null;
+      retryReason?: string | null;
+      resumeContextRef?: string | null;
+      notes?: string[];
+    }) => unknown;
+  }>(input.repoRoot, "agents/agent-run.js");
+
+  return module.updateAgentRun({
+    stateFile: input.stateFile,
+    logFile: input.logFile,
+    status: input.status,
+    outputRefs: input.outputRefs,
+    sessionId: input.sessionId ?? null,
+    resumeToken: input.resumeToken ?? null,
+    failureReason: input.failureReason ?? null,
+    failureCategory: input.failureCategory ?? null,
+    retryReason: input.retryReason ?? null,
+    resumeContextRef: input.resumeContextRef ?? null,
+    notes: input.notes,
+  }) as Record<string, unknown>;
 }
 
 export function bootstrapProduct(input: ProductBootstrapInput): Record<string, unknown> {

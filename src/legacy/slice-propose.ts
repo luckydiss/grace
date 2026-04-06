@@ -1,6 +1,7 @@
-import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { readFileSync, statSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { evaluateGuards } from "../policies/guard-engine.js";
+import { ensureParentDir } from "../runtime/fs-utils.js";
 import type { ProductTargetConfig } from "../runtime/product-target.js";
 import { readLegacyContractDrafts } from "./infer-contracts.js";
 import { readLegacyRiskReport, readLegacyScanReport } from "./scan.js";
@@ -157,7 +158,7 @@ export function proposeLegacySlice(input: ProposeLegacySliceInput): ProposeLegac
   const sourceRepoStatusBefore = statSync(input.target.sourceRepoRoot).mtimeMs;
   const plan = buildSlicePlan(input);
 
-  mkdirSync(dirname(planFile), { recursive: true });
+  ensureParentDir(planFile);
   writeFileSync(planFile, `${JSON.stringify(plan, null, 2)}\n`, "utf8");
 
   const sourceRepoStatusAfter = statSync(input.target.sourceRepoRoot).mtimeMs;
@@ -217,7 +218,7 @@ export function proposeLegacyDryRunEdit(input: ProposeLegacyEditDryRunInput): Pr
     failures: guard.failures,
   };
 
-  mkdirSync(dirname(dryRunFile), { recursive: true });
+  ensureParentDir(dryRunFile);
   writeFileSync(dryRunFile, `${JSON.stringify(dryRun, null, 2)}\n`, "utf8");
 
   const sourceRepoStatusAfter = statSync(input.target.sourceRepoRoot).mtimeMs;

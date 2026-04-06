@@ -13,3 +13,13 @@ export interface LoadAgentDescriptorInput {
   repoRoot: string;
   roleName: AgentRoleName;
 }
+
+export type { AgentRuntimeAdapter, AgentRuntimeAdapterResult, AgentRuntimeContext } from "./external-adapter.js";
+export type {
+  AgentRunEventDocument,
+  AgentRunFailureCategory,
+  AgentRunNextAction,
+  AgentRunStateDocument,
+  AgentRunStatus,
+  AgentRuntimeKind,
+} from "./agent-run.js";

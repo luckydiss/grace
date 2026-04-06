@@ -1,4 +1,6 @@
 import { dirname, join } from "node:path";
+import { createDeterministicLocalAdapter } from "../agents/external-adapter.js";
+import { initializeAgentRun, updateAgentRun } from "../agents/agent-run.js";
 import { invokeAgent } from "../agents/invoke-agent.js";
 import { loadAgentDescriptor } from "../agents/load-agent-descriptor.js";
 import type { AgentRoleName } from "../agents/index.js";
@@ -55,6 +57,8 @@ export function runAgentRole(roleName: AgentRoleName, input: RunRoleExecutorInpu
   const packetPrefix = `${descriptor.actorRole.slice(0, 1)}${descriptor.actorRole.slice(1).toLowerCase()}`;
   const taskPacketFile = join(executionDir, `${packetPrefix}TaskPacket-Workflow-${String(input.executionSequence).padStart(4, "0")}.json`);
   const invocationFile = join(executionDir, `${packetPrefix}Invocation-Workflow-${String(input.executionSequence).padStart(4, "0")}.json`);
+  const agentRunStateFile = join(executionDir, `${packetPrefix}RunState-Workflow-${String(input.executionSequence).padStart(4, "0")}.json`);
+  const agentRunLogFile = join(executionDir, `${packetPrefix}RunLog-Workflow-${String(input.executionSequence).padStart(4, "0")}.jsonl`);
   const invoked = invokeAgent({
     repoRoot: input.repoRoot,
     productId: input.productId,
@@ -68,6 +72,24 @@ export function runAgentRole(roleName: AgentRoleName, input: RunRoleExecutorInpu
     allowedBaIds: input.allowedBaIds,
     taskPacketFile,
     invocationFile,
+  });
+  const runtimeAdapter = input.runtimeAdapter ?? createDeterministicLocalAdapter(input.operation);
+  initializeAgentRun({
+    runId: `${descriptor.actorRole}-RUN-grace-agent-${String(input.executionSequence).padStart(2, "0")}`,
+    traceId: input.traceId,
+    productId: input.productId,
+    descriptor,
+    executionSequence: input.executionSequence,
+    adapterKind: runtimeAdapter.kind,
+    allowedStates: input.allowedStates,
+    inputRefs: [descriptor.systemRef, invoked.taskPacketRef, ...input.inputRefs],
+    taskPacketRef: invoked.taskPacketRef,
+    invocationRef: invoked.invocationRef,
+    stateFile: agentRunStateFile,
+    logFile: agentRunLogFile,
+    retryBudget: input.agentRetryBudget,
+    resumeContextRef: input.resumeContextRef,
+    now: input.now,
   });
   const result = runBoundedRole({
     productId: input.productId,
@@ -85,11 +107,52 @@ export function runAgentRole(roleName: AgentRoleName, input: RunRoleExecutorInpu
     skillTraceFile: input.skillTraceFile,
     now: input.now,
     operation: () => {
-      const payload = input.operation();
-      return {
-        ...payload,
-        outputRefs: [...payload.outputRefs, invoked.taskPacketRef, invoked.invocationRef],
-      };
+      updateAgentRun({
+        stateFile: agentRunStateFile,
+        logFile: agentRunLogFile,
+        status: "ACTIVE",
+        notes: ["Bounded role window opened and delegated to the configured runtime adapter."],
+        now: input.now,
+      });
+      try {
+        const adapterResult = runtimeAdapter.run({
+          productId: input.productId,
+          traceId: input.traceId,
+          descriptor,
+          executionSequence: input.executionSequence,
+          loadedSkillRefs,
+          inputRefs: [descriptor.systemRef, invoked.taskPacketRef, ...input.inputRefs],
+          allowedFcIds: input.allowedFcIds,
+          allowedBaIds: input.allowedBaIds,
+          allowedStates: input.allowedStates,
+        });
+        const payload = adapterResult.payload;
+        updateAgentRun({
+          stateFile: agentRunStateFile,
+          logFile: agentRunLogFile,
+          status: "SUCCEEDED",
+          outputRefs: [...payload.outputRefs, invoked.taskPacketRef, invoked.invocationRef],
+          sessionId: adapterResult.sessionId,
+          resumeToken: adapterResult.resumeToken,
+          notes: adapterResult.notes,
+          now: input.now,
+        });
+        return {
+          ...payload,
+          outputRefs: [...payload.outputRefs, invoked.taskPacketRef, invoked.invocationRef],
+        };
+      } catch (error) {
+        updateAgentRun({
+          stateFile: agentRunStateFile,
+          logFile: agentRunLogFile,
+          status: "FAILED",
+          failureReason: error instanceof Error ? error.message : String(error),
+          failureCategory: "TOOL_FAILURE",
+          notes: ["Runtime adapter raised an execution failure inside the bounded role window."],
+          now: input.now,
+        });
+        throw error;
+      }
     },
   });
 
@@ -100,8 +163,20 @@ export function runAgentRole(roleName: AgentRoleName, input: RunRoleExecutorInpu
       loadedSkillRefs,
       taskPacketFile: invoked.taskPacketFile,
       invocationFile: invoked.invocationFile,
+      agentRunStateFile,
+      agentRunLogFile,
     };
   }
+
+  updateAgentRun({
+    stateFile: agentRunStateFile,
+    logFile: agentRunLogFile,
+    status: "BLOCKED",
+    failureReason: result.violations.map((item) => item.code).join(","),
+    failureCategory: "SCOPE_VIOLATION",
+    notes: ["Bounded role execution was blocked before successful completion."],
+    now: input.now,
+  });
 
   return {
     ...result,
@@ -109,6 +184,8 @@ export function runAgentRole(roleName: AgentRoleName, input: RunRoleExecutorInpu
     loadedSkillRefs,
     taskPacketFile: null,
     invocationFile: null,
+    agentRunStateFile,
+    agentRunLogFile,
   };
 }
 

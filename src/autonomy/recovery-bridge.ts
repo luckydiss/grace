@@ -1,7 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ensureParentDir, readJsonIfExists } from "../runtime/fs-utils.js";
-import { emitGraceRuntimeLog } from "../runtime/runtime-log.js";
+import { createGraceRuntimeLogger } from "../runtime/runtime-log.js";
 import { applyTransition } from "../state/transition-engine.js";
 import type { AutonomyRecoveryInput, AutonomyRecoveryResult } from "./index.js";
 
@@ -60,17 +60,10 @@ interface FailureMemoryDocument {
   records: FailureMemoryRecord[];
 }
 
-function graceRuntimeLog(entry: {
-  ba: string;
-  belief: string;
-  fact: Record<string, unknown>;
-}): void {
-  emitGraceRuntimeLog({
-    mc: MC_GRACE_AUTONOMY_BRIDGE,
-    fc: FC_GRACE_AUTONOMY_EXECUTE_RECOVERY,
-    ...entry,
-  });
-}
+const graceRuntimeLog = createGraceRuntimeLogger({
+  mc: MC_GRACE_AUTONOMY_BRIDGE,
+  fc: FC_GRACE_AUTONOMY_EXECUTE_RECOVERY,
+});
 
 function loadFailureMemory(memoryFile: string): FailureMemoryDocument {
   return readJsonIfExists<FailureMemoryDocument>(memoryFile) ?? {

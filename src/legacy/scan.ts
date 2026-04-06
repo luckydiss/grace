@@ -1,5 +1,6 @@
-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { dirname, extname, join, relative, resolve } from "node:path";
+import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { extname, join, relative, resolve } from "node:path";
+import { ensureParentDir } from "../runtime/fs-utils.js";
 import type { ProductTargetConfig } from "../runtime/product-target.js";
 
 export interface LegacyScanEntry {
@@ -429,8 +430,8 @@ export function scanLegacyRepository(input: ScanLegacyRepositoryInput): ScanLega
   const report = buildLegacyScanReport(input.target);
   const riskReport = buildLegacyRiskReport(input.target, report);
 
-  mkdirSync(dirname(reportFile), { recursive: true });
-  mkdirSync(dirname(riskReportFile), { recursive: true });
+  ensureParentDir(reportFile);
+  ensureParentDir(riskReportFile);
   writeFileSync(reportFile, `${JSON.stringify(report, null, 2)}\n`, "utf8");
   writeFileSync(riskReportFile, `${JSON.stringify(riskReport, null, 2)}\n`, "utf8");
 

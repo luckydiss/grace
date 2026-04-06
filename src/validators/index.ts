@@ -131,3 +131,28 @@ export interface AgentEvidenceValidationResult {
   failures: AgentEvidenceFailure[];
   artifactRefs: string[];
 }
+
+export interface AgentRunEvidenceValidationInput {
+  repoRoot: string;
+  productId: string;
+  traceId: string;
+  executionDir: string;
+  requiredRoles: Array<"ARCHITECT" | "COORDINATOR" | "CODER">;
+}
+
+export interface AgentRunEvidenceFailure {
+  code:
+    | "AGENT_RUN_STATE_MISSING"
+    | "AGENT_RUN_STATE_INVALID"
+    | "AGENT_RUN_LOG_MISSING"
+    | "AGENT_RUN_LOG_INVALID"
+    | "AGENT_RUN_TRANSITION_INVALID"
+    | "AGENT_RUN_RETRY_BUDGET_EXCEEDED";
+  message: string;
+}
+
+export interface AgentRunEvidenceValidationResult {
+  ok: boolean;
+  failures: AgentRunEvidenceFailure[];
+  artifactRefs: string[];
+}

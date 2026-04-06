@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import {
   bootstrapAndStartProductWorkflow,
   approveWorkflow,
+  getAgentRuns,
   bootstrapLegacyOverlay,
   bootstrapProduct,
   dryRunLegacyEdit,
@@ -28,10 +29,12 @@ import {
   startLegacyOnboarding,
   inferLegacyContractsFromOverlay,
   validateAgentEvidence,
+  validateAgentRuns,
   validateDeliveryTrace,
   validateExecutionProof,
   validateLegacyOverlay,
   validateProductWorkspace,
+  resumeAgentRun,
   validateWorkflow,
 } from "./handlers.js";
 
@@ -91,6 +94,16 @@ test("grace-mcp returns process-artifact and agent-trace summaries", () => {
   assert.equal(Array.isArray(agentTrace.architect.executions), true);
   assert.equal(Array.isArray(agentTrace.coordinator.skillTraces), true);
   assert.equal(Array.isArray(agentTrace.coder.taskPackets), true);
+
+  const agentRuns = getAgentRuns(frameworkProductRoot) as {
+    architect: { states: unknown[]; summaries: Array<{ nextAction: unknown }> };
+    coordinator: { logs: unknown[]; summaries: unknown[] };
+    coder: { states: unknown[]; summaries: unknown[] };
+  };
+  assert.equal(Array.isArray(agentRuns.architect.states), true);
+  assert.equal(Array.isArray(agentRuns.coordinator.logs), true);
+  assert.equal(Array.isArray(agentRuns.coder.states), true);
+  assert.equal(Array.isArray(agentRuns.architect.summaries), true);
 });
 
 test("grace-mcp returns autonomy status deterministically when artifacts are absent", () => {
@@ -109,10 +122,21 @@ test("grace-mcp returns a unified workflow validation bundle", async () => {
     ok: boolean;
     state: { currentState: string };
     agentEvidence: { ok: boolean };
+    agentRuns: { ok: boolean };
   };
   assert.equal(verdict.ok, true);
   assert.equal(typeof verdict.state.currentState, "string");
   assert.equal(verdict.agentEvidence.ok, true);
+  assert.equal(typeof verdict.agentRuns.ok, "boolean");
+});
+
+test("grace-mcp validates agent run lifecycle artifacts", async () => {
+  const verdict = await validateAgentRuns({
+    repoRoot,
+    productRoot: frameworkProductRoot,
+    productId: "grace",
+  }) as { ok: boolean };
+  assert.equal(typeof verdict.ok, "boolean");
 });
 
 test("grace-mcp exposes execution-proof and delivery-trace validator surfaces", () => {
@@ -422,4 +446,121 @@ test("grace-mcp resumes a workflow through the reject path", async () => {
     assert.equal(rejected.currentState, "HANDOFF_REJECTED");
     assert.equal(rejected.transitionHistory?.includes("reject_handoff"), true);
   });
+});
+
+test("grace-mcp can update durable agent run status through the handler surface", async () => {
+  const tempRoot = mkdtempSync(join(tmpdir(), "grace-mcp-agent-run-"));
+  const stateFile = join(tempRoot, "CoordinatorRunState-Workflow-0001.json");
+  const logFile = join(tempRoot, "CoordinatorRunLog-Workflow-0001.jsonl");
+  writeFileSync(
+    stateFile,
+    `${JSON.stringify({
+      schemaVersion: "grace-agent-run-state-v1",
+      runId: "COORDINATOR-RUN-grace-agent-01",
+      traceId: "TRACE-GRACE-CORE",
+      productId: "grace",
+      roleName: "coordinator",
+      actorRole: "COORDINATOR",
+      executionSequence: 1,
+      adapterKind: "external-cli",
+      currentStatus: "ACTIVE",
+      allowedStates: ["HANDOFF_APPROVED"],
+      inputRefs: [],
+      outputRefs: [],
+      taskPacketRef: "docs/grace/executions/CoordinatorTaskPacket-Workflow-0001.json",
+      invocationRef: "docs/grace/executions/CoordinatorInvocation-Workflow-0001.json",
+      stateFile,
+      logFile,
+      sessionId: "cli-session",
+      resumeToken: "resume-token",
+      failureReason: null,
+      failureCategory: null,
+      retryBudget: 2,
+      retryCount: 0,
+      retryReason: null,
+      resumeContextRef: null,
+      nextAction: "NONE",
+      startedAt: "2026-04-06T00:00:00.000Z",
+      updatedAt: "2026-04-06T00:00:00.000Z",
+      completedAt: null,
+    }, null, 2)}\n`,
+    "utf8",
+  );
+  writeFileSync(
+    logFile,
+    '{"schemaVersion":"grace-agent-run-event-v1","status":"DISPATCHED","retryCount":0,"retryBudget":2,"nextAction":"NONE"}\n{"schemaVersion":"grace-agent-run-event-v1","status":"ACTIVE","retryCount":0,"retryBudget":2,"nextAction":"NONE"}\n',
+    "utf8",
+  );
+
+  const updated = await resumeAgentRun({
+    repoRoot,
+    stateFile,
+    logFile,
+    status: "FAILED",
+    failureReason: "cli exited 1",
+    failureCategory: "TOOL_FAILURE",
+    notes: ["MCP handler recorded a failure transition."],
+  }) as { currentStatus: string; failureReason: string; nextAction: string };
+
+  assert.equal(updated.currentStatus, "FAILED");
+  assert.equal(updated.failureReason, "cli exited 1");
+  assert.equal(updated.nextAction, "RESUME");
+});
+
+test("grace-mcp enforces retry budget when resuming a failed agent run", async () => {
+  const tempRoot = mkdtempSync(join(tmpdir(), "grace-mcp-agent-retry-"));
+  const stateFile = join(tempRoot, "CoordinatorRunState-Workflow-0001.json");
+  const logFile = join(tempRoot, "CoordinatorRunLog-Workflow-0001.jsonl");
+  writeFileSync(
+    stateFile,
+    `${JSON.stringify({
+      schemaVersion: "grace-agent-run-state-v1",
+      runId: "COORDINATOR-RUN-grace-agent-01",
+      traceId: "TRACE-GRACE-CORE",
+      productId: "grace",
+      roleName: "coordinator",
+      actorRole: "COORDINATOR",
+      executionSequence: 1,
+      adapterKind: "external-cli",
+      currentStatus: "FAILED",
+      allowedStates: ["HANDOFF_APPROVED"],
+      inputRefs: [],
+      outputRefs: [],
+      taskPacketRef: "docs/grace/executions/CoordinatorTaskPacket-Workflow-0001.json",
+      invocationRef: "docs/grace/executions/CoordinatorInvocation-Workflow-0001.json",
+      stateFile,
+      logFile,
+      sessionId: "cli-session",
+      resumeToken: "resume-token",
+      failureReason: "timeout waiting for cli",
+      failureCategory: "TRANSIENT",
+      retryBudget: 1,
+      retryCount: 1,
+      retryReason: "first retry already used",
+      resumeContextRef: "docs/grace/reports/forced-context.json",
+      nextAction: "ESCALATE",
+      startedAt: "2026-04-06T00:00:00.000Z",
+      updatedAt: "2026-04-06T00:00:00.000Z",
+      completedAt: "2026-04-06T00:00:00.000Z",
+    }, null, 2)}\n`,
+    "utf8",
+  );
+  writeFileSync(
+    logFile,
+    '{"schemaVersion":"grace-agent-run-event-v1","status":"DISPATCHED","retryCount":0,"retryBudget":1,"nextAction":"NONE"}\n{"schemaVersion":"grace-agent-run-event-v1","status":"ACTIVE","retryCount":0,"retryBudget":1,"nextAction":"NONE"}\n{"schemaVersion":"grace-agent-run-event-v1","status":"FAILED","retryCount":1,"retryBudget":1,"nextAction":"ESCALATE"}\n',
+    "utf8",
+  );
+
+  await assert.rejects(
+    () =>
+      resumeAgentRun({
+        repoRoot,
+        stateFile,
+        logFile,
+        status: "ACTIVE",
+        retryReason: "trying one more time",
+        resumeContextRef: "docs/grace/reports/forced-context.json",
+      }),
+    /nextAction=ESCALATE|retry budget exhausted/u,
+  );
 });

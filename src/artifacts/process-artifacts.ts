@@ -1,7 +1,7 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 import { ensureParentDir } from "../runtime/fs-utils.js";
-import { emitGraceRuntimeLog } from "../runtime/runtime-log.js";
+import { createGraceRuntimeLogger } from "../runtime/runtime-log.js";
 import type {
   EmitWorkflowOwnedArtifactsInput,
   EmitWorkflowOwnedArtifactsResult,
@@ -13,17 +13,10 @@ const FC_GRACE_ARTIFACTS_EMIT_WORKFLOW_OWNED = "FC-grace-artifacts-emitWorkflowO
 const BA_GRACE_BUILD_PROCESS_ARTIFACT = "BA-grace-build-process-artifact";
 const BA_GRACE_PERSIST_PROCESS_ARTIFACT = "BA-grace-persist-process-artifact";
 
-function graceRuntimeLog(entry: {
-  ba: string;
-  belief: string;
-  fact: Record<string, unknown>;
-}): void {
-  emitGraceRuntimeLog({
-    mc: MC_GRACE_ARTIFACT_ADAPTERS,
-    fc: FC_GRACE_ARTIFACTS_EMIT_WORKFLOW_OWNED,
-    ...entry,
-  });
-}
+const graceRuntimeLog = createGraceRuntimeLogger({
+  mc: MC_GRACE_ARTIFACT_ADAPTERS,
+  fc: FC_GRACE_ARTIFACTS_EMIT_WORKFLOW_OWNED,
+});
 
 function xmlEscape(value: string): string {
   return value

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ensureParentDir } from "../runtime/fs-utils.js";
-import { emitGraceRuntimeLog } from "../runtime/runtime-log.js";
+import { createGraceRuntimeLogger } from "../runtime/runtime-log.js";
 import {
   GRACE_WORKFLOW_STATE_SCHEMA,
   type WorkflowStateDocument,
@@ -49,17 +49,10 @@ const BA_GRACE_CLOSE_WINDOW = "BA-grace-close-window";
 
 const DEFAULT_STATE_FILE = "docs/grace/state/WorkflowState.json";
 
-function graceRuntimeLog(entry: {
-  ba: string;
-  belief: string;
-  fact: Record<string, unknown>;
-}): void {
-  emitGraceRuntimeLog({
-    mc: MC_GRACE_EXECUTORS,
-    fc: FC_GRACE_EXECUTORS_RUN_BOUNDED_ROLE,
-    ...entry,
-  });
-}
+const graceRuntimeLog = createGraceRuntimeLogger({
+  mc: MC_GRACE_EXECUTORS,
+  fc: FC_GRACE_EXECUTORS_RUN_BOUNDED_ROLE,
+});
 
 function xmlEscape(value: string): string {
   return value

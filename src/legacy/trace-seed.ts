@@ -1,5 +1,6 @@
-import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { readFileSync, statSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { ensureParentDir } from "../runtime/fs-utils.js";
 import type { ProductTargetConfig } from "../runtime/product-target.js";
 import type { LegacyContractDrafts } from "./contracts.js";
 import { readLegacyContractDrafts } from "./infer-contracts.js";
@@ -119,7 +120,7 @@ export function seedLegacyTraceability(input: SeedLegacyTraceabilityInput): Seed
   const drafts = readLegacyContractDrafts(draftsFile);
   const registry = buildLegacyGraphRegistry(input.target, drafts);
 
-  mkdirSync(dirname(registryFile), { recursive: true });
+  ensureParentDir(registryFile);
   writeFileSync(registryFile, `${JSON.stringify(registry, null, 2)}\n`, "utf8");
 
   const sourceRepoStatusAfter = statSync(input.target.sourceRepoRoot).mtimeMs;

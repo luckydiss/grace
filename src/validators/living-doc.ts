@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ensureParentDir } from "../runtime/fs-utils.js";
-import { emitGraceRuntimeLog } from "../runtime/runtime-log.js";
+import { createGraceRuntimeLogger } from "../runtime/runtime-log.js";
 import { GRACE_WORKFLOW_STATE_SCHEMA, type WorkflowStateDocument, type WorkflowStateName } from "../state/index.js";
 import { buildDefaultLivingDocMarkers } from "../runtime/product-target.js";
 import type {
@@ -40,17 +40,10 @@ const READY_FOR_TRACEABILITY_STATES = new Set<WorkflowStateName>([
   "ARCHIVED",
 ]);
 
-function graceRuntimeLog(entry: {
-  ba: string;
-  belief: string;
-  fact: Record<string, unknown>;
-}): void {
-  emitGraceRuntimeLog({
-    mc: MC_GRACE_VALIDATORS,
-    fc: FC_GRACE_VALIDATE_LIVING_DOCS,
-    ...entry,
-  });
-}
+const graceRuntimeLog = createGraceRuntimeLogger({
+  mc: MC_GRACE_VALIDATORS,
+  fc: FC_GRACE_VALIDATE_LIVING_DOCS,
+});
 
 function loadStateName(stateFile: string | undefined): WorkflowStateName | null {
   if (!stateFile || !existsSync(stateFile)) {

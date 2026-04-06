@@ -10,6 +10,7 @@ import {
   bootstrapLegacyOverlay,
   bootstrapProduct,
   dryRunLegacyEdit,
+  getAgentRuns,
   getAgentTrace,
   getAutonomyStatus,
   getLegacyOverlayMetadata,
@@ -29,11 +30,13 @@ import {
   startLegacyOnboarding,
   inferLegacyContractsFromOverlay,
   validateAgentEvidence,
+  validateAgentRuns,
   validateDeliveryTrace,
   validateExecutionProof,
   validateLegacyOverlay,
   validateProductWorkspace,
   validateWorkflow,
+  resumeAgentRun,
 } from "./runtime/handlers.js";
 
 function jsonResult(payload: unknown) {
@@ -256,6 +259,28 @@ export function buildGraceMcpServer(
       const productId = String(variables.productId);
       const product = findProduct(productId);
       return textResource(`grace://product/${productId}/agents`, getAgentTrace(product.productRoot));
+    },
+  );
+
+  server.registerResource(
+    "grace-product-agent-runs",
+    new ResourceTemplate("grace://product/{productId}/agent-runs", {
+      list: async () => ({
+        resources: listProducts(repoRoot).map((product) => ({
+          uri: `grace://product/${product.productId}/agent-runs`,
+          name: `${product.productId}-agent-runs`,
+        })),
+      }),
+    }),
+    {
+      mimeType: "application/json",
+      description: "Durable external-agent run state and retry surface for a GRACE product.",
+      title: "GRACE Product Agent Runs",
+    },
+    async (_uri: URL, variables: Record<string, string | string[]>) => {
+      const productId = String(variables.productId);
+      const product = findProduct(productId);
+      return textResource(`grace://product/${productId}/agent-runs`, getAgentRuns(product.productRoot));
     },
   );
 
@@ -704,6 +729,17 @@ export function buildGraceMcpServer(
   );
 
   server.registerTool(
+    "grace.agent.runs",
+    {
+      description: "Return durable agent run state, retry budgets, and next-action summaries for a GRACE product.",
+      inputSchema: {
+        productRoot: z.string().min(1),
+      },
+    },
+    async ({ productRoot }) => jsonResult(getAgentRuns(productRoot)),
+  );
+
+  server.registerTool(
     "grace.workflow.execution_proof",
     {
       description: "Run the canonical execution-proof validator for a GRACE product workspace.",
@@ -864,6 +900,41 @@ export function buildGraceMcpServer(
       },
     },
     async (args) => jsonResult(await validateAgentEvidence(args)),
+  );
+
+  server.registerTool(
+    "grace.agent.validate_runs",
+    {
+      description: "Validate durable agent run lifecycle artifacts including retry-budget and transition policy checks.",
+      inputSchema: {
+        repoRoot: z.string().min(1),
+        productRoot: z.string().min(1),
+        productId: z.string().optional(),
+      },
+    },
+    async (args) => jsonResult(await validateAgentRuns(args)),
+  );
+
+  server.registerTool(
+    "grace.agent.resume_run",
+    {
+      description: "Apply a governed lifecycle update to an existing agent run artifact pair.",
+      inputSchema: {
+        repoRoot: z.string().min(1),
+        stateFile: z.string().min(1),
+        logFile: z.string().min(1),
+        status: z.enum(["ACTIVE", "SUCCEEDED", "FAILED", "BLOCKED"]),
+        outputRefs: z.array(z.string().min(1)).optional(),
+        sessionId: z.string().optional(),
+        resumeToken: z.string().optional(),
+        failureReason: z.string().optional(),
+        failureCategory: z.enum(["TRANSIENT", "TOOL_FAILURE", "USER_INTERRUPT", "SCOPE_VIOLATION", "POLICY_BLOCK", "UNKNOWN"]).optional(),
+        retryReason: z.string().optional(),
+        resumeContextRef: z.string().optional(),
+        notes: z.array(z.string()).optional(),
+      },
+    },
+    async (args) => jsonResult(await resumeAgentRun(args)),
   );
 
   return server;

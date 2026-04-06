@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ensureParentDir } from "../runtime/fs-utils.js";
-import { emitGraceRuntimeLog } from "../runtime/runtime-log.js";
+import { createGraceRuntimeLogger } from "../runtime/runtime-log.js";
 import { TRANSITIONS } from "../state/index.js";
 import type { TransitionPolicyDocument, TransitionPolicyRule } from "../policies/index.js";
 import type {
@@ -40,17 +40,10 @@ const REQUIRED_ARTIFACT_REFS: Partial<Record<(typeof REQUIRED_POLICY_TRANSITIONS
   issue_cwo: ["docs/grace/approvals.log", "docs/grace/cwo/"],
 };
 
-function graceRuntimeLog(entry: {
-  ba: string;
-  belief: string;
-  fact: Record<string, unknown>;
-}): void {
-  emitGraceRuntimeLog({
-    mc: MC_GRACE_VALIDATORS,
-    fc: FC_GRACE_VALIDATE_POLICY_SCHEMA,
-    ...entry,
-  });
-}
+const graceRuntimeLog = createGraceRuntimeLogger({
+  mc: MC_GRACE_VALIDATORS,
+  fc: FC_GRACE_VALIDATE_POLICY_SCHEMA,
+});
 
 function buildFailure(code: PolicySchemaConsistencyFailure["code"], message: string): PolicySchemaConsistencyFailure {
   return { code, message };

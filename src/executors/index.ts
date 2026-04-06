@@ -1,5 +1,5 @@
 import type { WorkflowActor, WorkflowStateName } from "../state/index.js";
-import type { AgentDescriptor, AgentRoleName } from "../agents/index.js";
+import type { AgentDescriptor, AgentRoleName, AgentRuntimeAdapter } from "../agents/index.js";
 
 export type BoundedRoleActor = Exclude<WorkflowActor, "HUMAN" | "SYSTEM">;
 
@@ -76,6 +76,9 @@ export interface RunRoleExecutorInput {
   stateFile?: string;
   executionFile?: string;
   skillTraceFile?: string;
+  runtimeAdapter?: AgentRuntimeAdapter;
+  agentRetryBudget?: number;
+  resumeContextRef?: string;
   now?: string;
   operation: () => BoundedRoleExecutionPayload;
 }
@@ -85,13 +88,17 @@ export interface RunAgentRoleSuccess extends RunBoundedRoleSuccess {
   loadedSkillRefs: string[];
   taskPacketFile: string;
   invocationFile: string;
+  agentRunStateFile: string;
+  agentRunLogFile: string;
 }
 
 export interface RunAgentRoleBlocked extends RunBoundedRoleBlocked {
   descriptor: AgentDescriptor;
-  loadedSkillRefs: string[];
+  loadedSkillRefs: string[]; 
   taskPacketFile: string | null;
   invocationFile: string | null;
+  agentRunStateFile: string | null;
+  agentRunLogFile: string | null;
 }
 
 export type RunAgentRoleResult = RunAgentRoleSuccess | RunAgentRoleBlocked;

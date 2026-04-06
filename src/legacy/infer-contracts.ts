@@ -1,5 +1,6 @@
-import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { dirname, extname, resolve } from "node:path";
+import { readFileSync, statSync, writeFileSync } from "node:fs";
+import { extname, resolve } from "node:path";
+import { ensureParentDir } from "../runtime/fs-utils.js";
 import type { ProductTargetConfig } from "../runtime/product-target.js";
 import type {
   LegacyBlockAnchorDraft,
@@ -147,7 +148,7 @@ export function inferLegacyContracts(input: InferLegacyContractsInput): InferLeg
   const sourceRepoStatusBefore = statSync(input.target.sourceRepoRoot).mtimeMs;
   const drafts = buildDrafts(input.target, scanReportFile, riskReportFile);
 
-  mkdirSync(dirname(draftsFile), { recursive: true });
+  ensureParentDir(draftsFile);
   writeFileSync(draftsFile, `${JSON.stringify(drafts, null, 2)}\n`, "utf8");
 
   const sourceRepoStatusAfter = statSync(input.target.sourceRepoRoot).mtimeMs;
