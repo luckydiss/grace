@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { proposeLegacyDryRunEdit, resolveLegacyOverlayTarget } from "../legacy/index.js";
+import { createCliArgCursor } from "./args.js";
 
 interface CliArgs {
   repoRoot: string;
@@ -26,41 +27,42 @@ function parseArgs(argv: string[]): CliArgs {
     json: false,
   };
 
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
+  const cursor = createCliArgCursor(argv);
+  while (cursor.hasMore()) {
+    const arg = cursor.current();
     switch (arg) {
       case "--repo-root":
-        args.repoRoot = argv[++i] ?? args.repoRoot;
+        args.repoRoot = cursor.next(args.repoRoot) ?? args.repoRoot;
         break;
       case "--product-root":
-        args.productRoot = argv[++i] ?? args.productRoot;
+        args.productRoot = cursor.next(args.productRoot) ?? args.productRoot;
         break;
       case "--source-repo-root":
-        args.sourceRepoRoot = argv[++i] ?? args.sourceRepoRoot;
+        args.sourceRepoRoot = cursor.next(args.sourceRepoRoot) ?? args.sourceRepoRoot;
         break;
       case "--product-id":
-        args.productId = argv[++i] ?? args.productId;
+        args.productId = cursor.next(args.productId) ?? args.productId;
         break;
       case "--trace-id":
-        args.traceId = argv[++i] ?? args.traceId;
+        args.traceId = cursor.next(args.traceId) ?? args.traceId;
         break;
       case "--slice-id":
-        args.sliceId = argv[++i] ?? args.sliceId;
+        args.sliceId = cursor.next(args.sliceId) ?? args.sliceId;
         break;
       case "--requested-write-path":
-        args.requestedWritePaths.push(argv[++i] ?? "");
+        args.requestedWritePaths.push(cursor.next("") ?? "");
         break;
       case "--write-mode-authorized":
         args.writeModeAuthorized = true;
         break;
       case "--plan-file":
-        args.planFile = argv[++i] ?? args.planFile;
+        args.planFile = cursor.next(args.planFile) ?? args.planFile;
         break;
       case "--policy-file":
-        args.policyFile = argv[++i] ?? args.policyFile;
+        args.policyFile = cursor.next(args.policyFile) ?? args.policyFile;
         break;
       case "--dry-run-file":
-        args.dryRunFile = argv[++i] ?? args.dryRunFile;
+        args.dryRunFile = cursor.next(args.dryRunFile) ?? args.dryRunFile;
         break;
       case "--json":
         args.json = true;
@@ -68,6 +70,7 @@ function parseArgs(argv: string[]): CliArgs {
       default:
         break;
     }
+    cursor.advance();
   }
 
   return args;

@@ -1,5 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { ensureParentDir } from "../runtime/fs-utils.js";
+import { emitGraceRuntimeLog } from "../runtime/runtime-log.js";
 import { TRANSITIONS } from "../state/index.js";
 import type { TransitionPolicyDocument, TransitionPolicyRule } from "../policies/index.js";
 import type {
@@ -43,19 +45,11 @@ function graceRuntimeLog(entry: {
   belief: string;
   fact: Record<string, unknown>;
 }): void {
-  console.error(
-    JSON.stringify({
-      ts: new Date().toISOString(),
-      layer: "runtime",
-      mc: MC_GRACE_VALIDATORS,
-      fc: FC_GRACE_VALIDATE_POLICY_SCHEMA,
-      ...entry,
-    }),
-  );
-}
-
-function ensureParentDir(filePath: string): void {
-  mkdirSync(dirname(filePath), { recursive: true });
+  emitGraceRuntimeLog({
+    mc: MC_GRACE_VALIDATORS,
+    fc: FC_GRACE_VALIDATE_POLICY_SCHEMA,
+    ...entry,
+  });
 }
 
 function buildFailure(code: PolicySchemaConsistencyFailure["code"], message: string): PolicySchemaConsistencyFailure {

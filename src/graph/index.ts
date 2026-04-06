@@ -8,8 +8,8 @@ export interface GraceWorkflowInput {
   traceId: string;
   stateFile: string;
   transitionLogFile: string;
-  policyFile: string;
-  issueReportFile: string;
+  policyFile: string | undefined;
+  issueReportFile: string | undefined;
   executionDir: string;
   verificationMode: "pass" | "fail";
   handoffRef: string;

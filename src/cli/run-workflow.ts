@@ -2,6 +2,7 @@ import { existsSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { buildGraceWorkflow, resumeGraceWorkflow } from "../graph/workflow.js";
 import { ensureParentDir } from "../runtime/fs-utils.js";
+import { createCliArgCursor } from "./args.js";
 import {
   buildProductArtifactRef,
   resolveProductTarget,
@@ -80,8 +81,9 @@ function parseArgs(argv: string[]): CliArgs {
     json: false,
   };
 
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
+  const cursor = createCliArgCursor(argv);
+  while (cursor.hasMore()) {
+    const arg = cursor.current();
     switch (arg) {
       case "start":
         args.mode = "start";
@@ -90,112 +92,112 @@ function parseArgs(argv: string[]): CliArgs {
         args.mode = "resume";
         break;
       case "--repo-root":
-        args.repoRoot = argv[++i] ?? args.repoRoot;
+        args.repoRoot = cursor.next(args.repoRoot) ?? args.repoRoot;
         break;
       case "--product-root":
-        args.productRoot = argv[++i] ?? args.productRoot;
+        args.productRoot = cursor.next(args.productRoot) ?? args.productRoot;
         break;
       case "--source-repo-root":
-        args.sourceRepoRoot = argv[++i] ?? args.sourceRepoRoot;
+        args.sourceRepoRoot = cursor.next(args.sourceRepoRoot) ?? args.sourceRepoRoot;
         break;
       case "--product-id":
-        args.productId = argv[++i] ?? args.productId;
+        args.productId = cursor.next(args.productId) ?? args.productId;
         break;
       case "--trace-id":
-        args.traceId = argv[++i] ?? args.traceId;
+        args.traceId = cursor.next(args.traceId) ?? args.traceId;
         break;
       case "--thread-id":
-        args.threadId = argv[++i] ?? args.threadId;
+        args.threadId = cursor.next(args.threadId) ?? args.threadId;
         break;
       case "--verification-mode":
-        args.verificationMode = (argv[++i] as "pass" | "fail") ?? args.verificationMode;
+        args.verificationMode = (cursor.next(args.verificationMode) as "pass" | "fail") ?? args.verificationMode;
         break;
       case "--state-file":
-        args.stateFile = argv[++i] ?? args.stateFile;
+        args.stateFile = cursor.next(args.stateFile) ?? args.stateFile;
         break;
       case "--transition-log-file":
-        args.transitionLogFile = argv[++i] ?? args.transitionLogFile;
+        args.transitionLogFile = cursor.next(args.transitionLogFile) ?? args.transitionLogFile;
         break;
       case "--issue-report-file":
-        args.issueReportFile = argv[++i] ?? args.issueReportFile;
+        args.issueReportFile = cursor.next(args.issueReportFile) ?? args.issueReportFile;
         break;
       case "--execution-dir":
-        args.executionDir = argv[++i] ?? args.executionDir;
+        args.executionDir = cursor.next(args.executionDir) ?? args.executionDir;
         break;
       case "--policy-file":
-        args.policyFile = argv[++i] ?? args.policyFile;
+        args.policyFile = cursor.next(args.policyFile) ?? args.policyFile;
         break;
       case "--handoff-ref":
-        args.handoffRef = argv[++i] ?? args.handoffRef;
+        args.handoffRef = cursor.next(args.handoffRef) ?? args.handoffRef;
         break;
       case "--approvals-ref":
-        args.approvalsRef = argv[++i] ?? args.approvalsRef;
+        args.approvalsRef = cursor.next(args.approvalsRef) ?? args.approvalsRef;
         break;
       case "--approval-log-file":
-        args.approvalLogFile = argv[++i] ?? args.approvalLogFile;
+        args.approvalLogFile = cursor.next(args.approvalLogFile) ?? args.approvalLogFile;
         break;
       case "--requirements-file":
-        args.requirementsFile = argv[++i] ?? args.requirementsFile;
+        args.requirementsFile = cursor.next(args.requirementsFile) ?? args.requirementsFile;
         break;
       case "--technology-file":
-        args.technologyFile = argv[++i] ?? args.technologyFile;
+        args.technologyFile = cursor.next(args.technologyFile) ?? args.technologyFile;
         break;
       case "--development-plan-file":
-        args.developmentPlanFile = argv[++i] ?? args.developmentPlanFile;
+        args.developmentPlanFile = cursor.next(args.developmentPlanFile) ?? args.developmentPlanFile;
         break;
       case "--execution-plan-file":
-        args.executionPlanFile = argv[++i] ?? args.executionPlanFile;
+        args.executionPlanFile = cursor.next(args.executionPlanFile) ?? args.executionPlanFile;
         break;
       case "--living-doc-report-file":
-        args.livingDocReportFile = argv[++i] ?? args.livingDocReportFile;
+        args.livingDocReportFile = cursor.next(args.livingDocReportFile) ?? args.livingDocReportFile;
         break;
       case "--living-doc-report-ref":
-        args.livingDocReportRef = argv[++i] ?? args.livingDocReportRef;
+        args.livingDocReportRef = cursor.next(args.livingDocReportRef) ?? args.livingDocReportRef;
         break;
       case "--policy-schema-report-file":
-        args.policySchemaReportFile = argv[++i] ?? args.policySchemaReportFile;
+        args.policySchemaReportFile = cursor.next(args.policySchemaReportFile) ?? args.policySchemaReportFile;
         break;
       case "--policy-schema-report-ref":
-        args.policySchemaReportRef = argv[++i] ?? args.policySchemaReportRef;
+        args.policySchemaReportRef = cursor.next(args.policySchemaReportRef) ?? args.policySchemaReportRef;
         break;
       case "--branchspec-ref":
-        args.branchSpecRef = argv[++i] ?? args.branchSpecRef;
+        args.branchSpecRef = cursor.next(args.branchSpecRef) ?? args.branchSpecRef;
         break;
       case "--cwo-ref":
-        args.cwoRef = argv[++i] ?? args.cwoRef;
+        args.cwoRef = cursor.next(args.cwoRef) ?? args.cwoRef;
         break;
       case "--failure-memory-file":
-        args.failureMemoryFile = argv[++i] ?? args.failureMemoryFile;
+        args.failureMemoryFile = cursor.next(args.failureMemoryFile) ?? args.failureMemoryFile;
         break;
       case "--forced-context-file":
-        args.forcedContextFile = argv[++i] ?? args.forcedContextFile;
+        args.forcedContextFile = cursor.next(args.forcedContextFile) ?? args.forcedContextFile;
         break;
       case "--loop-guard-file":
-        args.loopGuardFile = argv[++i] ?? args.loopGuardFile;
+        args.loopGuardFile = cursor.next(args.loopGuardFile) ?? args.loopGuardFile;
         break;
       case "--failure-scope":
-        args.failureScope = argv[++i] ?? args.failureScope;
+        args.failureScope = cursor.next(args.failureScope) ?? args.failureScope;
         break;
       case "--failure-test-id":
-        args.failureTestId = argv[++i] ?? args.failureTestId;
+        args.failureTestId = cursor.next(args.failureTestId) ?? args.failureTestId;
         break;
       case "--failure-error-signature":
-        args.failureErrorSignature = argv[++i] ?? args.failureErrorSignature;
+        args.failureErrorSignature = cursor.next(args.failureErrorSignature) ?? args.failureErrorSignature;
         break;
       case "--retry-count":
-        args.retryCount = Number(argv[++i] ?? args.retryCount);
+        args.retryCount = Number(cursor.next(String(args.retryCount)) ?? args.retryCount);
         break;
       case "--retry-budget":
-        args.retryBudget = Number(argv[++i] ?? args.retryBudget);
+        args.retryBudget = Number(cursor.next(String(args.retryBudget)) ?? args.retryBudget);
         break;
       case "--proposed-fix":
-        args.proposedFix = argv[++i] ?? "";
+        args.proposedFix = cursor.next("") ?? "";
         break;
       case "--approval-decision":
-        args.approvalDecision = (argv[++i] as "approve" | "reject") ?? args.approvalDecision;
+        args.approvalDecision = (cursor.next(args.approvalDecision) as "approve" | "reject") ?? args.approvalDecision;
         break;
       case "--out":
-        args.out = argv[++i] ?? args.out;
+        args.out = cursor.next(args.out) ?? args.out;
         break;
       case "--json":
         args.json = true;
@@ -203,6 +205,7 @@ function parseArgs(argv: string[]): CliArgs {
       default:
         break;
     }
+    cursor.advance();
   }
 
   return args;

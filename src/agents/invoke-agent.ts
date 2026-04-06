@@ -1,5 +1,6 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { ensureParentDir } from "../runtime/fs-utils.js";
 import { toRepoArtifactRef } from "../runtime/product-target.js";
 import type { WorkflowStateName } from "../state/index.js";
 import type { AgentDescriptor } from "./index.js";
@@ -67,10 +68,6 @@ export interface InvokeAgentResult {
   invocationFile: string;
   taskPacketRef: string;
   invocationRef: string;
-}
-
-function ensureParentDir(filePath: string): void {
-  mkdirSync(dirname(filePath), { recursive: true });
 }
 
 /**

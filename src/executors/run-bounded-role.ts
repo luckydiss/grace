@@ -1,5 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { ensureParentDir } from "../runtime/fs-utils.js";
+import { emitGraceRuntimeLog } from "../runtime/runtime-log.js";
 import {
   GRACE_WORKFLOW_STATE_SCHEMA,
   type WorkflowStateDocument,
@@ -52,19 +54,11 @@ function graceRuntimeLog(entry: {
   belief: string;
   fact: Record<string, unknown>;
 }): void {
-  console.error(
-    JSON.stringify({
-      ts: new Date().toISOString(),
-      layer: "runtime",
-      mc: MC_GRACE_EXECUTORS,
-      fc: FC_GRACE_EXECUTORS_RUN_BOUNDED_ROLE,
-      ...entry,
-    }),
-  );
-}
-
-function ensureParentDir(filePath: string): void {
-  mkdirSync(dirname(filePath), { recursive: true });
+  emitGraceRuntimeLog({
+    mc: MC_GRACE_EXECUTORS,
+    fc: FC_GRACE_EXECUTORS_RUN_BOUNDED_ROLE,
+    ...entry,
+  });
 }
 
 function xmlEscape(value: string): string {

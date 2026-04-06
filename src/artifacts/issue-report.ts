@@ -1,5 +1,6 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, relative, resolve } from "node:path";
+import { writeFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
+import { ensureParentDir } from "../runtime/fs-utils.js";
 import type { EmitIssueReportInput, EmitIssueReportResult } from "./index.js";
 
 /**
@@ -30,10 +31,6 @@ import type { EmitIssueReportInput, EmitIssueReportResult } from "./index.js";
  */
 
 const DEFAULT_REPORT_DIR = "docs/grace/reports/issues";
-
-function ensureParentDir(filePath: string): void {
-  mkdirSync(dirname(filePath), { recursive: true });
-}
 
 function xmlEscape(value: string): string {
   return value

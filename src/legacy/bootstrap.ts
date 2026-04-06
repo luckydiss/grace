@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
+import { ensureParentDir } from "../runtime/fs-utils.js";
 import {
   type ProductTargetConfig,
   buildProductArtifactRef,
@@ -29,10 +30,6 @@ export interface BootstrapLegacyOverlayResult extends PersistLegacyOverlayMetada
   stateFile: string;
   policyFile: string;
   approvalsFile: string;
-}
-
-function ensureParentDir(filePath: string): void {
-  mkdirSync(dirname(filePath), { recursive: true });
 }
 
 function copyTemplateTree(sourceDir: string, targetDir: string, replacements: Array<[string, string]>): void {

@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { bootstrapLegacyOverlayWorkspace } from "../legacy/bootstrap.js";
 import { resolveLegacyOverlayTarget } from "../legacy/index.js";
+import { createCliArgCursor } from "./args.js";
 
 interface CliArgs {
   repoRoot: string;
@@ -19,23 +20,24 @@ function parseArgs(argv: string[]): CliArgs {
     json: false,
   };
 
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
+  const cursor = createCliArgCursor(argv);
+  while (cursor.hasMore()) {
+    const arg = cursor.current();
     switch (arg) {
       case "--repo-root":
-        args.repoRoot = argv[++i] ?? args.repoRoot;
+        args.repoRoot = cursor.next(args.repoRoot) ?? args.repoRoot;
         break;
       case "--product-root":
-        args.productRoot = argv[++i] ?? args.productRoot;
+        args.productRoot = cursor.next(args.productRoot) ?? args.productRoot;
         break;
       case "--source-repo-root":
-        args.sourceRepoRoot = argv[++i] ?? args.sourceRepoRoot;
+        args.sourceRepoRoot = cursor.next(args.sourceRepoRoot) ?? args.sourceRepoRoot;
         break;
       case "--product-id":
-        args.productId = argv[++i] ?? args.productId;
+        args.productId = cursor.next(args.productId) ?? args.productId;
         break;
       case "--product-name":
-        args.productName = argv[++i] ?? args.productName;
+        args.productName = cursor.next(args.productName) ?? args.productName;
         break;
       case "--json":
         args.json = true;
@@ -43,6 +45,7 @@ function parseArgs(argv: string[]): CliArgs {
       default:
         break;
     }
+    cursor.advance();
   }
 
   return args;
