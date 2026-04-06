@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RequirementsAnalysis version="1.0.0-product" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Domain id="grace">
+    <Name>GRACE Workflow Runtime</Name>
+    <Description>
+      Product-local redesign of GRACE around a deterministic workflow state machine,
+      explicit transitions, machine-enforced guards, and bounded agent execution windows.
+    </Description>
+  </Domain>
+
+  <Actors>
+    <Actor id="ACT-WORKFLOW-OWNER" type="primary">
+      <Name>Workflow Owner</Name>
+      <Description>Human operator who initiates delivery, approves handoffs, and resolves escalations.</Description>
+    </Actor>
+    <Actor id="ACT-COORDINATOR-RUNTIME" type="system">
+      <Name>Coordinator Runtime</Name>
+      <Description>State-machine orchestrator that routes transitions and enforces policy guards.</Description>
+    </Actor>
+    <Actor id="ACT-BOUNDED-AGENT" type="system">
+      <Name>Bounded Agent Executor</Name>
+      <Description>Architect, coordinator, or coder executor running only inside a permitted transition window.</Description>
+    </Actor>
+  </Actors>
+
+  <UseCases>
+    <UseCase id="UC-GRACE-STATE-MACHINE" priority="MUST">
+      <Name>Persist and advance the workflow state machine</Name>
+      <Description>Maintain one canonical workflow state per product and move it only through approved transitions.</Description>
+      <PrimaryActor ref="ACT-COORDINATOR-RUNTIME" />
+      <AAG>
+        <Actor>Coordinator runtime</Actor>
+        <Action>loads state, evaluates one requested transition, and persists the resulting state and transition event</Action>
+        <Goal>prevent undocumented or illegal process movement</Goal>
+      </AAG>
+      <Preconditions>
+        <Item>A product-local workflow state document exists or can be initialized deterministically.</Item>
+        <Item>The requested transition name and actor identity are explicit.</Item>
+      </Preconditions>
+      <SuccessOutcome>Every process movement is recorded as a validated transition from one named state to another.</SuccessOutcome>
+      <Links>
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-workflow-core" />
+      </Links>
+    </UseCase>
+
+    <UseCase id="UC-GRACE-POLICY-GUARDS" priority="MUST">
+      <Name>Enforce transition guards and actor permissions</Name>
+      <Description>Prevent agents or humans from performing transitions without the required artifacts, approvals, scope, and role permissions.</Description>
+      <PrimaryActor ref="ACT-COORDINATOR-RUNTIME" />
+      <AAG>
+        <Actor>Coordinator runtime</Actor>
+        <Action>evaluates policy guards before permitting a transition</Action>
+        <Goal>make GRACE governance machine-enforced instead of prompt-enforced</Goal>
+      </AAG>
+      <Preconditions>
+        <Item>Policy documents defining actor permissions and transition guards are present.</Item>
+        <Item>Artifact references for the attempted transition are resolvable.</Item>
+      </Preconditions>
+      <SuccessOutcome>Illegal transitions are rejected deterministically with an issue report or blocked state.</SuccessOutcome>
+      <Links>
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-policy-engine" />
+      </Links>
+    </UseCase>
+
+    <UseCase id="UC-GRACE-HUMAN-APPROVAL" priority="MUST">
+      <Name>Handle approval interrupts inside the workflow</Name>
+      <Description>Pause at approval boundaries and resume only after a human approval event is formally recorded.</Description>
+      <PrimaryActor ref="ACT-WORKFLOW-OWNER" />
+      <AAG>
+        <Actor>Workflow owner</Actor>
+        <Action>approves or rejects a pending handoff or escalation</Action>
+        <Goal>retain explicit human control at critical governance checkpoints</Goal>
+      </AAG>
+      <Preconditions>
+        <Item>The workflow is in an approval-pending state.</Item>
+        <Item>The relevant handoff or escalation artifact has been materialized.</Item>
+      </Preconditions>
+      <SuccessOutcome>The workflow either advances to an approved state or is blocked/rejected with a durable decision record.</SuccessOutcome>
+      <Links>
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-artifact-adapters" />
+      </Links>
+    </UseCase>
+
+    <UseCase id="UC-GRACE-BOUNDED-EXECUTION" priority="MUST">
+      <Name>Run architect, coordinator, and coder as bounded executors</Name>
+      <Description>Invoke agent roles only within the semantic and temporal scope granted by the active transition.</Description>
+      <PrimaryActor ref="ACT-BOUNDED-AGENT" />
+      <AAG>
+        <Actor>Bounded agent executor</Actor>
+        <Action>executes one approved role-specific slice</Action>
+        <Goal>produce artifacts or code without process authority leakage</Goal>
+      </AAG>
+      <Preconditions>
+        <Item>An active transition grants scope to the role and names allowed artifacts or semantic ids.</Item>
+        <Item>The workflow is not blocked.</Item>
+      </Preconditions>
+      <SuccessOutcome>Role execution is traceable, policy-bounded, and cannot illegally change global process state.</SuccessOutcome>
+      <Links>
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-executor-runtime" />
+      </Links>
+    </UseCase>
+
+    <UseCase id="UC-GRACE-TRACEABILITY" priority="MUST">
+      <Name>Preserve workflow-to-artifact traceability</Name>
+      <Description>Keep one stable delivery trace across workflow state, transitions, handoffs, CWOs, execution artifacts, skill traces, and verification outputs.</Description>
+      <PrimaryActor ref="ACT-COORDINATOR-RUNTIME" />
+      <AAG>
+        <Actor>Coordinator runtime</Actor>
+        <Action>binds every transition and effect to the active delivery trace</Action>
+        <Goal>make the process auditable end to end</Goal>
+      </AAG>
+      <Preconditions>
+        <Item>A stable trace id exists for the delivery stream.</Item>
+        <Item>Execution artifacts and reports are written through transition effects.</Item>
+      </Preconditions>
+      <SuccessOutcome>Auditors can reconstruct the full chain from transition log to runtime evidence and approvals.</SuccessOutcome>
+      <Links>
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-validators" />
+      </Links>
+    </UseCase>
+
+    <UseCase id="UC-GRACE-FAILURE-RECOVERY" priority="SHOULD">
+      <Name>Route repeated failures through forced-context remediation</Name>
+      <Description>Integrate the current W11 autonomy cycle as a governed branch of the main workflow state machine.</Description>
+      <PrimaryActor ref="ACT-COORDINATOR-RUNTIME" />
+      <AAG>
+        <Actor>Coordinator runtime</Actor>
+        <Action>captures failure artifacts, applies loop guards, and reopens remediation only when allowed</Action>
+        <Goal>avoid repeated uncontrolled retries</Goal>
+      </AAG>
+      <Preconditions>
+        <Item>Failure envelope, failure memory, and loop guard validators are available.</Item>
+        <Item>The workflow is in a verification or remediation failure state.</Item>
+      </Preconditions>
+      <SuccessOutcome>Repeated failures become explicit governed states rather than hidden retry loops.</SuccessOutcome>
+      <Links>
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-autonomy-bridge" />
+      </Links>
+    </UseCase>
+
+    <UseCase id="UC-GRACE-ADAPTER-COMPATIBILITY" priority="SHOULD">
+      <Name>Invoke legacy GRACE validators through governed adapters</Name>
+      <Description>Run mature v1 validation and trace scripts as bounded adapter effects under v2 workflow control instead of relying on direct ad hoc script orchestration.</Description>
+      <PrimaryActor ref="ACT-COORDINATOR-RUNTIME" />
+      <AAG>
+        <Actor>Coordinator runtime</Actor>
+        <Action>invokes legacy validator adapters as named workflow effects</Action>
+        <Goal>reuse trusted v1 evidence tooling during migration without returning process control to script-first orchestration</Goal>
+      </AAG>
+      <Preconditions>
+        <Item>Compatible v1 scripts and their inputs are available in the repository.</Item>
+        <Item>The v2 workflow has already established one canonical state, trace id, and artifact chain.</Item>
+      </Preconditions>
+      <SuccessOutcome>Legacy validators produce evidence under v2 control and can be phased out later without breaking the product workflow model.</SuccessOutcome>
+      <Links>
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-v1-adapters" />
+      </Links>
+    </UseCase>
+    <UseCase id="UC-GRACE-LEGACY-ONBOARDING" priority="SHOULD">
+      <Name>Onboard external legacy repositories into governed GRACE overlays</Name>
+      <Description>Create a GRACE-controlled overlay workspace for an existing repository so workflow state, policy, and traceability can be applied without rewriting the source tree up front.</Description>
+      <PrimaryActor ref="ACT-COORDINATOR-RUNTIME" />
+      <AAG>
+        <Actor>Coordinator runtime</Actor>
+        <Action>creates and advances a governed overlay over a legacy repository</Action>
+        <Goal>bring unstructured code under deterministic workflow control</Goal>
+      </AAG>
+      <Preconditions>
+        <Item>A resolvable source repository root exists outside or alongside the overlay workspace.</Item>
+        <Item>The overlay workspace can materialize GRACE state, policy, and reports independently from the source repository.</Item>
+      </Preconditions>
+      <SuccessOutcome>The legacy repository is addressable by state, trace, and bounded execution before any invasive code change begins.</SuccessOutcome>
+      <Links>
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-runtime-targeting" />
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-legacy-onboarding" />
+      </Links>
+    </UseCase>
+    <UseCase id="UC-GRACE-LEGACY-BOOTSTRAP" priority="SHOULD">
+      <Name>Bootstrap a read-only overlay for legacy code</Name>
+      <Description>Materialize workflow, policy, and metadata artifacts for a legacy repository without modifying the underlying source code.</Description>
+      <PrimaryActor ref="ACT-COORDINATOR-RUNTIME" />
+      <AAG>
+        <Actor>Coordinator runtime</Actor>
+        <Action>bootstraps a GRACE overlay over an existing repository</Action>
+        <Goal>prepare the repository for governed discovery and slicing</Goal>
+      </AAG>
+      <Preconditions>
+        <Item>The source repository root is reachable and readable.</Item>
+        <Item>The overlay workspace location is writable.</Item>
+      </Preconditions>
+      <SuccessOutcome>A valid legacy overlay exists and can be validated independently from the source repository.</SuccessOutcome>
+      <Links>
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-legacy-onboarding" />
+      </Links>
+    </UseCase>
+    <UseCase id="UC-GRACE-LEGACY-SAFE-MODE" priority="MUST">
+      <Name>Protect legacy source repositories during onboarding</Name>
+      <Description>Keep legacy onboarding read-only until explicit approval and write-mode authorization allow bounded source edits.</Description>
+      <PrimaryActor ref="ACT-COORDINATOR-RUNTIME" />
+      <AAG>
+        <Actor>Coordinator runtime</Actor>
+        <Action>enforces write restrictions on the source repository</Action>
+        <Goal>prevent accidental invasive changes during onboarding and early discovery</Goal>
+      </AAG>
+      <Preconditions>
+        <Item>The workflow can distinguish overlay workspace artifacts from source repository paths.</Item>
+        <Item>Policy files declare whether write mode is enabled.</Item>
+      </Preconditions>
+      <SuccessOutcome>Unauthorized writes to the source repository are blocked deterministically with durable evidence.</SuccessOutcome>
+      <Links>
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-policy-engine" />
+      </Links>
+    </UseCase>
+    <UseCase id="UC-GRACE-LEGACY-MCP" priority="SHOULD">
+      <Name>Expose legacy onboarding through MCP</Name>
+      <Description>Allow external MCP clients to bootstrap, scan, validate, and advance legacy onboarding through governed GRACE actions.</Description>
+      <PrimaryActor ref="ACT-WORKFLOW-OWNER" />
+      <AAG>
+        <Actor>Workflow owner</Actor>
+        <Action>uses MCP tools to onboard and inspect a legacy repository</Action>
+        <Goal>operate GRACE on legacy code without manual file surgery</Goal>
+      </AAG>
+      <Preconditions>
+        <Item>The grace-mcp server is connected to the repository and can resolve both overlay and source roots.</Item>
+        <Item>The target repository has been declared or bootstrapped as a legacy overlay.</Item>
+      </Preconditions>
+      <SuccessOutcome>Legacy onboarding can be driven entirely through MCP while preserving workflow governance.</SuccessOutcome>
+      <Links>
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-mcp-surface" />
+      </Links>
+    </UseCase>
+    <UseCase id="UC-GRACE-LEGACY-SCAN" priority="SHOULD">
+      <Name>Scan and map legacy repository structure</Name>
+      <Description>Discover files, modules, languages, tests, entrypoints, and structural risks before contract inference or code changes begin.</Description>
+      <PrimaryActor ref="ACT-COORDINATOR-RUNTIME" />
+      <AAG>
+        <Actor>Coordinator runtime</Actor>
+        <Action>scans a legacy repository and emits structural reports</Action>
+        <Goal>replace blind whole-repo reading with machine-readable discovery artifacts</Goal>
+      </AAG>
+      <Preconditions>
+        <Item>The overlay knows the source repository root.</Item>
+        <Item>The repository is readable.</Item>
+      </Preconditions>
+      <SuccessOutcome>The system has a durable scan and risk baseline for the repository.</SuccessOutcome>
+      <Links>
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-legacy-scan" />
+      </Links>
+    </UseCase>
+    <UseCase id="UC-GRACE-LEGACY-CONTRACT-INFERENCE" priority="SHOULD">
+      <Name>Infer draft contracts from legacy code</Name>
+      <Description>Generate draft module, function, and block contracts over existing code so legacy modification can become contract-guided.</Description>
+      <PrimaryActor ref="ACT-BOUNDED-AGENT" />
+      <AAG>
+        <Actor>Bounded agent executor</Actor>
+        <Action>derives draft MC, FC, and BA anchors from legacy code</Action>
+        <Goal>create a semantic shield before modification begins</Goal>
+      </AAG>
+      <Preconditions>
+        <Item>A structural scan and repository map already exist.</Item>
+        <Item>The workflow is in a legacy contract inference state.</Item>
+      </Preconditions>
+      <SuccessOutcome>Legacy code gains draft semantic contracts and trace seeds without source mutation.</SuccessOutcome>
+      <Links>
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-legacy-contracts" />
+      </Links>
+    </UseCase>
+    <UseCase id="UC-GRACE-LEGACY-SLICE-PROPOSAL" priority="SHOULD">
+      <Name>Propose the first safe legacy modification slices</Name>
+      <Description>Use scan, inferred contracts, and risk reports to propose bounded first changes suitable for governed coder execution.</Description>
+      <PrimaryActor ref="ACT-COORDINATOR-RUNTIME" />
+      <AAG>
+        <Actor>Coordinator runtime</Actor>
+        <Action>derives bounded first slices from the legacy graph and risks</Action>
+        <Goal>avoid uncontrolled first edits in large legacy codebases</Goal>
+      </AAG>
+      <Preconditions>
+        <Item>Legacy scan and contract draft artifacts already exist.</Item>
+        <Item>Write mode is still disabled or limited to dry-run planning.</Item>
+      </Preconditions>
+      <SuccessOutcome>The workflow produces reviewable, bounded, FC-scoped first slices for safe legacy edits.</SuccessOutcome>
+      <Links>
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-legacy-slicing" />
+      </Links>
+    </UseCase>
+  </UseCases>
+
+  <DataContracts>
+    <DataContract id="DC-GRACE-WORKFLOW-STATE">
+      <Description>Canonical persisted workflow state for one product delivery stream.</Description>
+    </DataContract>
+    <DataContract id="DC-GRACE-TRANSITION-EVENT">
+      <Description>Append-only event describing one legal or rejected state transition.</Description>
+    </DataContract>
+    <DataContract id="DC-GRACE-TRANSITION-POLICY">
+      <Description>Machine-readable transition rules, actor permissions, and guard declarations.</Description>
+    </DataContract>
+    <DataContract id="DC-GRACE-ISSUE-REPORT">
+      <Description>Deterministic issue record emitted when a guard fails or the workflow enters a blocked state.</Description>
+    </DataContract>
+    <DataContract id="DC-GRACE-LEGACY-WORKSPACE">
+      <Description>Overlay metadata describing the relationship between the GRACE workspace and the external legacy source repository.</Description>
+    </DataContract>
+    <DataContract id="DC-GRACE-LEGACY-SCAN-REPORT">
+      <Description>Machine-readable discovery and risk report for a legacy repository.</Description>
+    </DataContract>
+    <DataContract id="DC-GRACE-LEGACY-CONTRACT-DRAFTS">
+      <Description>Draft semantic contracts inferred from legacy source code without mutating the codebase.</Description>
+    </DataContract>
+  </DataContracts>
+
+  <NonFunctionalRequirements>
+    <NFR id="NFR-GRACE-DETERMINISTIC-CONTROL" priority="MUST">
+      <Category>Governance</Category>
+      <Statement>Critical process transitions must be decided by machine-enforced guards and state transitions, not by prompt interpretation alone.</Statement>
+    </NFR>
+    <NFR id="NFR-GRACE-AUDITABILITY" priority="MUST">
+      <Category>Auditability</Category>
+      <Statement>Every state transition must produce durable, reviewable evidence with actor identity, trace id, and artifact refs.</Statement>
+    </NFR>
+    <NFR id="NFR-GRACE-ROLE-BOUNDARY" priority="MUST">
+      <Category>Safety</Category>
+      <Statement>Architect, coordinator, and coder executors must not be able to modify workflow state outside their authorized transitions.</Statement>
+    </NFR>
+    <NFR id="NFR-GRACE-RESUMABILITY" priority="MUST">
+      <Category>Reliability</Category>
+      <Statement>The workflow engine must resume safely after interruption using persisted state and transition history.</Statement>
+    </NFR>
+    <NFR id="NFR-GRACE-COMPATIBILITY" priority="SHOULD">
+      <Category>Compatibility</Category>
+      <Statement>GRACE should reuse existing handoff, approval, CWO, execution-proof, delivery-trace, and autonomy artifacts as effects rather than replacing them immediately.</Statement>
+    </NFR>
+    <NFR id="NFR-GRACE-LEGACY-NONINVASIVE" priority="MUST">
+      <Category>Safety</Category>
+      <Statement>Legacy onboarding must default to a non-invasive overlay mode that does not modify the source repository before explicit authorization.</Statement>
+    </NFR>
+  </NonFunctionalRequirements>
+</RequirementsAnalysis>

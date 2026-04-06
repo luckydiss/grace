@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AutonomyCycleExecution id="AUTONOMY-EXEC-TEMPLATE" traceId="TRACE-__PRODUCT_ID__-CORE" actorRole="COORDINATOR" sequence="0001">
+  <InputRefs><Ref value="docs/grace/reports/failure-memory.json" /></InputRefs>
+  <OutputRefs><Ref value="docs/grace/reports/loop-guard.json" /></OutputRefs>
+  <RequiredSkillRefs><Skill name="protocol-grace-failure-memory" /></RequiredSkillRefs>
+</AutonomyCycleExecution>

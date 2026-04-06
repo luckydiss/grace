@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GRACE_HANDOFF id="Handoff-__PRODUCT_ID__-TEMPLATE" schemaVersion="grace-markup-v2" created="2026-04-06T00:00:00+03:00" status="DRAFT" author="GRACE" taskRef="W1-T1" planRef="DevelopmentPlan.xml#MC-__PRODUCT_ID__-CORE" blueprintRef="DevelopmentExecutionPlan.xml#W1-T1" traceId="TRACE-__PRODUCT_ID__-CORE" />

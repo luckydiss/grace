@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CoordinatorExecution id="COORD-EXEC-grace-mcp-01" traceId="TRACE-grace-mcp-CORE" actorRole="COORDINATOR" sequence="2">
+  <InputRefs>
+    <Ref value="docs/grace/handoffs/Handoff-YYYYMMDD-01.xml#Handoff-YYYYMMDD-01" />
+  </InputRefs>
+  <OutputRefs>
+    <Ref value="docs/grace/cwo/CWO-YYYYMMDD-01.xml#CWO-YYYYMMDD-01" />
+    <Ref value="docs/grace/approvals.log#Handoff-YYYYMMDD-01" />
+  </OutputRefs>
+  <RequiredSkillRefs>
+    <Skill name="mode-coordinator" />
+    <Skill name="protocol-grace-traceability" />
+    <Skill name="coordinator-work-orders" />
+  </RequiredSkillRefs>
+</CoordinatorExecution>

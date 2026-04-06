@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CoordinatorExecution id="COORDINATOR-EXEC-TEMPLATE" traceId="TRACE-__PRODUCT_ID__-CORE" actorRole="COORDINATOR" sequence="0001">
+  <InputRefs><Ref value="docs/grace/handoffs/" /></InputRefs>
+  <OutputRefs><Ref value="docs/grace/cwo/" /></OutputRefs>
+  <RequiredSkillRefs><Skill name="mode-coordinator" /></RequiredSkillRefs>
+</CoordinatorExecution>

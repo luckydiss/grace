@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RequirementsAnalysis version="1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Domain id="grace-mcp">
+    <Name>^GRACE^ V2^ MCP^</Name>
+    <Description>Replace with the product domain description.</Description>
+  </Domain>
+
+  <Actors>
+    <Actor id="ACT-PRIMARY" type="primary">
+      <Name>Primary Actor</Name>
+      <Description>Replace with the main actor.</Description>
+    </Actor>
+  </Actors>
+
+  <UseCases>
+    <UseCase id="UC-grace-mcp-01" priority="MUST">
+      <Name>Primary use case</Name>
+      <Description>Replace with the primary use case.</Description>
+      <PrimaryActor ref="ACT-PRIMARY" />
+      <AAG>
+        <Actor>Replace with the actor who initiates this use case.</Actor>
+        <Action>Replace with the concrete action the actor performs.</Action>
+        <Goal>Replace with the intended outcome the actor is trying to achieve.</Goal>
+      </AAG>
+      <Preconditions>
+        <Item>Replace with a required precondition for this use case.</Item>
+      </Preconditions>
+      <SuccessOutcome>Replace with the observable successful outcome.</SuccessOutcome>
+      <Links>
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-mcp" />
+      </Links>
+    </UseCase>
+  </UseCases>
+
+  <NonFunctionalRequirements>
+    <NFR id="NFR-grace-mcp-MAINTAINABILITY" priority="MUST">
+      <Category>Maintainability</Category>
+      <Statement>Replace with the key maintainability constraint.</Statement>
+    </NFR>
+  </NonFunctionalRequirements>
+</RequirementsAnalysis>

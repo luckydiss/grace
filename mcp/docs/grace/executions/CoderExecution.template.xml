@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CoderExecution id="CODER-EXEC-grace-mcp-01" traceId="TRACE-grace-mcp-CORE" actorRole="CODER" sequence="3">
+  <InputRefs>
+    <Ref value="docs/grace/cwo/CWO-YYYYMMDD-01.xml#CWO-YYYYMMDD-01" />
+  </InputRefs>
+  <OutputRefs>
+    <Ref value="src/" />
+    <Ref value="docs/grace/reports/runtime-evidence.jsonl" />
+  </OutputRefs>
+  <RequiredSkillRefs>
+    <Skill name="mode-coder" />
+    <Skill name="protocol-grace-patch-safety" />
+    <Skill name="protocol-grace-runtime-logging" />
+  </RequiredSkillRefs>
+</CoderExecution>

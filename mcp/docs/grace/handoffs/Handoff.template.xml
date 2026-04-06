@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GRACE_HANDOFF
+  id="Handoff-YYYYMMDD-01-grace-mcp"
+  status="PROPOSED"
+  schemaVersion="grace-markup-v2"
+  created="YYYY-MM-DDTHH:mm:ss+00:00"
+  author="GRACE-ARCHITECT"
+  traceId="TRACE-grace-mcp-CORE"
+  taskRef="W0-T1"
+  planRef="DevelopmentExecutionPlan.xml#W0-T1"
+  blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-mcp"
+  techRef="Technology.xml#DEC-grace-mcp-STACK-001"
+  requirementsRef="RequirementsAnalysis.xml#UC-grace-mcp-01"
+>
+  <Scope>
+    <Services>
+      <ServiceRef ref="DP-SVC-grace-mcp"/>
+    </Services>
+    <UseCases>
+      <UseCaseRef ref="UC-grace-mcp-01"/>
+    </UseCases>
+  </Scope>
+
+  <Artifacts>
+    <Artifact ref="RequirementsAnalysis.xml" version="1.0.0"/>
+    <Artifact ref="Technology.xml" version="1.0.0"/>
+    <Artifact ref="DevelopmentPlan.xml" version="1.0.0"/>
+    <Artifact ref="DevelopmentExecutionPlan.xml" version="1.0.0"/>
+  </Artifacts>
+</GRACE_HANDOFF>

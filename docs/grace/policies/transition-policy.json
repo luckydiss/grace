@@ -1,0 +1,241 @@
+{
+  "schemaVersion": "grace-transition-policy-v1",
+  "productId": "grace",
+  "traceId": "TRACE-GRACE-CORE",
+  "transitions": {
+    "classify_intake": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": []
+    },
+    "block_intake": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": []
+    },
+    "bootstrap_legacy_overlay": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": [
+        "docs/grace/LegacyWorkspace.json",
+        "docs/grace/SourceRepoMap.json"
+      ]
+    },
+    "scan_legacy_repo": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": [
+        "docs/grace/reports/LegacyScanReport.json",
+        "docs/grace/reports/LegacyRiskReport.json"
+      ]
+    },
+    "infer_legacy_contracts": {
+      "allowedActors": ["ARCHITECT", "SYSTEM"],
+      "requiredArtifactRefs": [
+        "docs/grace/reports/LegacyContractDrafts.json"
+      ]
+    },
+    "seed_legacy_traceability": {
+      "allowedActors": ["ARCHITECT", "SYSTEM"],
+      "requiredArtifactRefs": [
+        "docs/grace/reports/LegacyGraphRegistry.json"
+      ]
+    },
+    "propose_legacy_slice": {
+      "allowedActors": ["CODER", "SYSTEM"],
+      "requiredArtifactRefs": [
+        "docs/grace/reports/LegacySlicePlan.json"
+      ]
+    },
+    "start_blueprint": {
+      "allowedActors": ["ARCHITECT", "COORDINATOR"],
+      "requiredArtifactRefs": [
+        "docs/grace/RequirementsAnalysis.xml",
+        "docs/grace/Technology.xml"
+      ]
+    },
+    "submit_blueprint_for_review": {
+      "allowedActors": ["ARCHITECT"],
+      "requiredArtifactRefs": [
+        "docs/grace/DevelopmentPlan.xml",
+        "docs/grace/DevelopmentExecutionPlan.xml"
+      ]
+    },
+    "approve_blueprint": {
+      "allowedActors": ["COORDINATOR", "HUMAN"],
+      "requiredArtifactRefs": [
+        "docs/grace/DevelopmentPlan.xml"
+      ]
+    },
+    "reject_blueprint": {
+      "allowedActors": ["COORDINATOR", "HUMAN"],
+      "requiredArtifactRefs": [
+        "docs/grace/DevelopmentPlan.xml"
+      ]
+    },
+    "start_handoff": {
+      "allowedActors": ["COORDINATOR", "ARCHITECT"],
+      "requiredArtifactRefs": [
+        "docs/grace/handoffs/"
+      ]
+    },
+    "propose_handoff": {
+      "allowedActors": ["COORDINATOR", "ARCHITECT"],
+      "requiredArtifactRefs": [
+        "docs/grace/handoffs/"
+      ]
+    },
+    "request_handoff_approval": {
+      "allowedActors": ["COORDINATOR", "ARCHITECT"],
+      "requiredArtifactRefs": [
+        "docs/grace/handoffs/"
+      ]
+    },
+    "approve_handoff": {
+      "allowedActors": ["HUMAN"],
+      "requiredArtifactRefs": [
+        "docs/grace/handoffs/"
+      ]
+    },
+    "reject_handoff": {
+      "allowedActors": ["HUMAN", "COORDINATOR"],
+      "requiredArtifactRefs": [
+        "docs/grace/handoffs/"
+      ]
+    },
+    "draft_cwo": {
+      "allowedActors": ["COORDINATOR"],
+      "requiredArtifactRefs": [
+        "docs/grace/handoffs/"
+      ]
+    },
+    "issue_branchspec": {
+      "allowedActors": ["COORDINATOR"],
+      "requiredArtifactRefs": [
+        "docs/grace/cwo/"
+      ]
+    },
+    "issue_cwo": {
+      "allowedActors": ["COORDINATOR"],
+      "requiredArtifactRefs": [
+        "docs/grace/approvals.log",
+        "docs/grace/cwo/"
+      ]
+    },
+    "reject_cwo": {
+      "allowedActors": ["COORDINATOR"],
+      "requiredArtifactRefs": [
+        "docs/grace/cwo/"
+      ]
+    },
+    "activate_coder": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": [
+        "docs/grace/cwo/"
+      ]
+    },
+    "pause_coder": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": [
+        "docs/grace/cwo/"
+      ]
+    },
+    "submit_coder_output": {
+      "allowedActors": ["CODER"],
+      "requiredArtifactRefs": []
+    },
+    "reject_coder_output": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": [
+        "docs/grace/cwo/"
+      ]
+    },
+    "split_scope_and_reissue_cwo": {
+      "allowedActors": ["COORDINATOR"],
+      "requiredArtifactRefs": [
+        "docs/grace/cwo/"
+      ]
+    },
+    "start_verification": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": []
+    },
+    "record_verification_pass": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": []
+    },
+    "record_verification_fail": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": []
+    },
+    "record_traceability_pass": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": []
+    },
+    "record_traceability_fail": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": []
+    },
+    "record_living_doc_fail": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": [
+        "docs/grace/reports/living-doc-report.json"
+      ]
+    },
+    "capture_failure": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": []
+    },
+    "append_failure_memory": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": [
+        "docs/grace/reports/failure-memory.json"
+      ]
+    },
+    "inject_forced_context": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": [
+        "docs/grace/reports/failure-memory.json",
+        "docs/grace/reports/forced-context.json"
+      ]
+    },
+    "evaluate_loop_guard": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": [
+        "docs/grace/reports/loop-guard.json"
+      ]
+    },
+    "allow_remediation": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": [
+        "docs/grace/reports/loop-guard.json"
+      ]
+    },
+    "block_remediation": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": [
+        "docs/grace/reports/loop-guard.json"
+      ]
+    },
+    "mark_ready_for_release": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": []
+    },
+    "mark_delivered": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": []
+    },
+    "archive_delivery": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": []
+    },
+    "block_workflow": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": []
+    },
+    "escalate_to_human": {
+      "allowedActors": ["COORDINATOR", "SYSTEM"],
+      "requiredArtifactRefs": []
+    },
+    "cancel_workflow": {
+      "allowedActors": ["HUMAN", "COORDINATOR"],
+      "requiredArtifactRefs": []
+    }
+  }
+}

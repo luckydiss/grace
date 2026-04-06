@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "grace-workflow-state-v1",
+  "productId": "grace-mcp",
+  "traceId": "TRACE-GRACE-MCP-CORE",
+  "currentState": "INTAKE_RECEIVED",
+  "governance": {
+    "blocked": false,
+    "blockReasons": []
+  },
+  "approval": {
+    "required": true,
+    "present": false
+  },
+  "history": []
+}

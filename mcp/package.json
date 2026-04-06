@@ -1,0 +1,23 @@
+{
+  "name": "grace-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node ../node_modules/typescript/bin/tsc -p tsconfig.json",
+    "test": "npm run build && node --test .\\dist\\runtime\\handlers.test.js .\\dist\\server.test.js .\\dist\\http-server.test.js",
+    "start": "node dist/server.js",
+    "start:http": "node dist/http-server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "express": "^5.1.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6"
+  }
+}

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CoderExecution id="CODER-EXEC-TEMPLATE" traceId="TRACE-__PRODUCT_ID__-CORE" actorRole="CODER" sequence="0001">
+  <InputRefs><Ref value="docs/grace/cwo/" /></InputRefs>
+  <OutputRefs><Ref value="docs/grace/executions/" /></OutputRefs>
+  <RequiredSkillRefs><Skill name="mode-coder" /></RequiredSkillRefs>
+</CoderExecution>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Technology>
+  <Product id="__PRODUCT_ID__" name="__PRODUCT_NAME__" />
+  <Decisions>
+    <Decision id="DEC-__PRODUCT_ID__-STACK" title="Choose the implementation stack for __PRODUCT_NAME__" />
+  </Decisions>
+</Technology>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ArchitectExecution id="ARCH-EXEC-grace-mcp-01" traceId="TRACE-grace-mcp-CORE" actorRole="ARCHITECT" sequence="1">
+  <InputRefs>
+    <Ref value="RequirementsAnalysis.xml#UC-grace-mcp-01" />
+    <Ref value="Technology.xml#DEC-grace-mcp-001" />
+  </InputRefs>
+  <OutputRefs>
+    <Ref value="DevelopmentPlan.xml#DP-SVC-grace-mcp" />
+    <Ref value="docs/grace/handoffs/Handoff-YYYYMMDD-01.xml#Handoff-YYYYMMDD-01" />
+  </OutputRefs>
+  <RequiredSkillRefs>
+    <Skill name="mode-architect" />
+    <Skill name="protocol-grace-markup" />
+    <Skill name="protocol-decision-collapse" />
+  </RequiredSkillRefs>
+</ArchitectExecution>

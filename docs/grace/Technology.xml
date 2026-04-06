@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Technology version="1.0.0-product" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Languages>
+    <Language id="TECH-grace-typescript">
+      <Name>TypeScript</Name>
+      <Version>5.9</Version>
+      <Usage>Primary implementation language for the workflow runtime, validators, and CLI surface.</Usage>
+    </Language>
+    <Language id="TECH-grace-json">
+      <Name>JSON / JSONL</Name>
+      <Version>RFC 8259</Version>
+      <Usage>Persist workflow state, transition events, policies, and sidecar trace artifacts.</Usage>
+    </Language>
+    <Language id="TECH-grace-xml">
+      <Name>GRACE XML-like markup</Name>
+      <Version>grace-markup-v2</Version>
+      <Usage>Retained as the durable artifact layer for handoffs, CWOs, approvals, and execution evidence.</Usage>
+    </Language>
+  </Languages>
+
+  <Frameworks>
+    <Framework id="TECH-grace-node">
+      <Name>Node.js</Name>
+      <Version>24.x</Version>
+      <Usage>Runtime for the workflow engine, validators, and local CLI orchestration.</Usage>
+    </Framework>
+    <Framework id="TECH-grace-langgraph">
+      <Name>LangGraph</Name>
+      <Version>JS runtime, current stable</Version>
+      <Usage>State-machine orchestration engine with durable checkpoints, interrupts, and explicit node routing.</Usage>
+    </Framework>
+    <Framework id="TECH-grace-node-test">
+      <Name>node:test</Name>
+      <Version>Node 24 built-in</Version>
+      <Usage>Framework and workflow contract tests without external test runner dependencies.</Usage>
+    </Framework>
+  </Frameworks>
+
+  <Decisions>
+    <Decision id="DEC-GRACE-ENGINE-001" status="APPROVED">
+      <Title>State-machine-first orchestration</Title>
+      <Description>GRACE uses an explicit workflow state machine as the source of control for process movement.</Description>
+      <Rationale>Prompt-only skill loading is not strong enough to guarantee mandatory governance behavior.</Rationale>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-STATE-MACHINE" />
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-workflow-core" />
+      </Links>
+    </Decision>
+
+    <Decision id="DEC-GRACE-LANGGRAPH-001" status="APPROVED">
+      <Title>LangGraph as workflow runtime</Title>
+      <Description>LangGraph is used as the orchestration runtime for typed state, guarded transitions, interrupts, and resumable execution.</Description>
+      <Rationale>It gives durable workflow control while still accommodating bounded agent execution nodes.</Rationale>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-STATE-MACHINE" />
+        <Link ref="RequirementsAnalysis.xml#NFR-GRACE-RESUMABILITY" />
+      </Links>
+    </Decision>
+
+    <Decision id="DEC-GRACE-POLICY-001" status="APPROVED">
+      <Title>Policy-as-code guard layer</Title>
+      <Description>Actor permissions, transition rules, and guard requirements are stored as machine-readable policies evaluated before transition execution.</Description>
+      <Rationale>Governance must be executable and versioned separately from agent prompts.</Rationale>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-POLICY-GUARDS" />
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-policy-engine" />
+      </Links>
+    </Decision>
+
+    <Decision id="DEC-GRACE-EVIDENCE-001" status="APPROVED">
+      <Title>Existing GRACE artifacts remain the evidence layer</Title>
+      <Description>Handoffs, approvals, CWOs, execution traces, skill traces, verification reports, and W11 artifacts remain durable evidence and transition effects.</Description>
+      <Rationale>GRACE should strengthen process control without throwing away the current artifact model.</Rationale>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-TRACEABILITY" />
+        <Link ref="RequirementsAnalysis.xml#NFR-GRACE-COMPATIBILITY" />
+      </Links>
+    </Decision>
+
+    <Decision id="DEC-GRACE-ISOLATION-001" status="APPROVED">
+      <Title>Product isolation during v2 incubation</Title>
+      <Description>`grace` evolves in its own workspace and does not mutate active demo products except via explicit integration slices.</Description>
+      <Rationale>The new control architecture should be developed and validated in isolation before framework-wide adoption.</Rationale>
+      <Links>
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-workflow-core" />
+      </Links>
+    </Decision>
+
+    <Decision id="DEC-GRACE-DELIVERY-CHUNKING-001" status="APPROVED">
+      <Title>Semantic-slice-first delivery</Title>
+      <Description>Implementation is split by one `FC-*` per coder chunk, or at most one to two `BA-*` inside the same `FC-*`.</Description>
+      <Rationale>The v2 engine itself must obey the same strict chunking and traceability discipline it intends to enforce.</Rationale>
+      <Links>
+        <Link ref="DevelopmentExecutionPlan.xml#W1-T1" />
+        <Link ref="DevelopmentExecutionPlan.xml#W2-T1" />
+        <Link ref="DevelopmentExecutionPlan.xml#W3-T1" />
+      </Links>
+    </Decision>
+
+    <Decision id="DEC-GRACE-ADAPTERS-001" status="APPROVED">
+      <Title>Reuse v1 validators through bounded adapters</Title>
+      <Description>Existing v1 validators and trace tools are invoked through explicit v2 adapter surfaces while migration is in progress.</Description>
+      <Rationale>This preserves proven validation behavior without allowing legacy scripts to remain the source of process control.</Rationale>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-ADAPTER-COMPATIBILITY" />
+        <Link ref="RequirementsAnalysis.xml#NFR-GRACE-COMPATIBILITY" />
+      </Links>
+    </Decision>
+    <Decision id="DEC-GRACE-LEGACY-OVERLAY-001" status="APPROVED">
+      <Title>Legacy onboarding uses overlay workspaces</Title>
+      <Description>External legacy repositories are governed through overlay workspaces that materialize GRACE state, policy, reports, and traceability artifacts without forcing immediate source-tree mutation.</Description>
+      <Rationale>An overlay-first model lets GRACE control process and semantics for legacy codebases before any risky invasive rewrite begins.</Rationale>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-ONBOARDING" />
+        <Link ref="RequirementsAnalysis.xml#NFR-GRACE-LEGACY-NONINVASIVE" />
+      </Links>
+    </Decision>
+  </Decisions>
+</Technology>

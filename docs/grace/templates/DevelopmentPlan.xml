@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DevelopmentPlan>
+  <Module id="MC-__PRODUCT_ID__-CORE" title="Core module for __PRODUCT_NAME__">
+    <FunctionContract id="FC-__PRODUCT_ID__-CORE" title="Primary bounded implementation slice for __PRODUCT_NAME__" />
+  </Module>
+</DevelopmentPlan>

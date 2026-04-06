@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RequirementsAnalysis>
+  <Product id="__PRODUCT_ID__" name="__PRODUCT_NAME__" />
+  <UseCases>
+    <UseCase id="UC-__PRODUCT_ID__-CORE" title="Define the core delivery scope for __PRODUCT_NAME__" />
+  </UseCases>
+  <NonFunctionalRequirements>
+    <Item id="NFR-__PRODUCT_ID__-TRACEABILITY">Maintain explicit traceability for bounded AI work.</Item>
+  </NonFunctionalRequirements>
+</RequirementsAnalysis>

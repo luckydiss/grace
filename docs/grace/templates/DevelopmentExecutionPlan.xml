@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DevelopmentExecutionPlan>
+  <Task id="W1-T1" title="Establish the first bounded slice for __PRODUCT_NAME__" />
+  <DeliveryPolicy>
+    <Rule id="DP-__PRODUCT_ID__-SMALL-SLICES">Deliver through one FC-sized slice at a time.</Rule>
+  </DeliveryPolicy>
+</DevelopmentExecutionPlan>

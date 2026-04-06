@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CODER_WORK_ORDER id="CWO-YYYYMMDD-01-grace-mcp" status="PROPOSED" traceId="TRACE-grace-mcp-CORE">
+  <Preconditions>
+    <Item>Approved handoff exists for the same trace and scope.</Item>
+    <Item>Matching approval exists in docs/grace/approvals.log.</Item>
+    <Item>BranchSpec is attached or referenced and must be followed verbatim.</Item>
+    <Item>No unresolved PENDING_HUMAN or TBD decisions remain for in-scope implementation.</Item>
+  </Preconditions>
+
+  <Scope>
+    <HandoffRef>Handoff-YYYYMMDD-01-grace-mcp</HandoffRef>
+    <BranchSpecRef>BS-YYYYMMDD-01-grace-mcp</BranchSpecRef>
+    <Services>
+      <ServiceRef ref="DP-SVC-grace-mcp" />
+    </Services>
+    <UseCases>
+      <UseCaseRef ref="UC-grace-mcp-01" />
+    </UseCases>
+    <Contracts>
+      <ModuleContractRef id="MC-grace-mcp-MODULE" />
+      <FunctionContractRef id="FC-grace-mcp-FUNCTION" />
+      <BlockAnchorRef id="BA-grace-mcp-BLOCK" />
+    </Contracts>
+  </Scope>
+
+  <ImplementationRules>
+    <Item>Keep approved traceId and semantic IDs stable.</Item>
+    <Item>Stay inside the approved handoff and BranchSpec scope.</Item>
+    <Item>Update contracts, maps, logs, and traceability surfaces as a living document.</Item>
+    <Item>For repeated remediation, include W11 failure-envelope and forced-context references.</Item>
+  </ImplementationRules>
+
+  <RequiredOutputs>
+    <Item>FilePlan for the approved implementation slice.</Item>
+    <Item>ConsistencyChecklist covering contracts, tests, runtime evidence, and traceability.</Item>
+    <Item>GitExecutionSteps for branch creation, validation, and PR preparation.</Item>
+  </RequiredOutputs>
+</CODER_WORK_ORDER>

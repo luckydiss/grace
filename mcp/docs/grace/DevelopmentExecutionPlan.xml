@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Skill-first bootstrap note:
+  - At least one early task should establish the thin bootstrap prompt surface.
+  - Bootstrap prompts should declare MANDATORY MODE and MANDATORY PROTOCOL.
+  - Product work should remain traceable from UC to MC to FC to BA to runtime logs.
+  - Product work should establish one stable delivery trace id, for example TRACE-grace-mcp-CORE.
+-->
+<DevelopmentExecutionPlan version="1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <DeliveryPolicy>
+    <Rule>One governed workflow tool or evidence surface per semantic slice.</Rule>
+    <Rule>All MCP mutations must route through grace workflow start or resume commands.</Rule>
+    <Rule>Every swarm-facing action must leave durable task packet, invocation, execution, or skill-trace evidence.</Rule>
+  </DeliveryPolicy>
+  <Wave id="W0" name="Bootstrap">
+    <Description>Bootstrap the MCP package as a governed wrapper over grace with product listing, workflow control, and agent-evidence validation.</Description>
+    <Task
+      id="W0-T1"
+      title="Implement workflow discovery and control MCP tools"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-mcp"
+      requirementsRef="RequirementsAnalysis.xml#UC-grace-mcp-01"
+    />
+  </Wave>
+</DevelopmentExecutionPlan>

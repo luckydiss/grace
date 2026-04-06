@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Skill-first bootstrap note:
+  - Keep runtime agent prompts thin.
+  - Use shared protocol skills from the framework root.
+  - Treat semantic ids (MC/FC/BA) as primary navigation and patch coordinates.
+-->
+<DevelopmentPlan version="1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Phases id="DevelopmentPhases">
+    <Phase id="PHASE-0" name="Foundation">
+      <Description>Replace with foundation phase description. Include skill-first bootstrap, canonical semantic coordinates, and first approval-ready vertical slice.</Description>
+      <Priority>MUST</Priority>
+    </Phase>
+  </Phases>
+
+  <Modules>
+    <Module id="DP-SVC-grace-mcp">
+      <Name>^GRACE^ V2^ MCP^</Name>
+      <Description>MCP server package that exposes governed GRACE workflow operations over stdio and delegates all orchestration to the canonical grace runtime.</Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-grace-mcp-01" />
+        <Link ref="Technology.xml#DEC-grace-mcp-STACK-001" />
+        <Link ref="DevelopmentExecutionPlan.xml#W0-T1" />
+      </Links>
+    </Module>
+  </Modules>
+
+  <FunctionContracts>
+    <FunctionContract id="FC-grace-mcp-serveWorkflowTools">
+      <Intent>Serve MCP tools for product discovery, workflow control, and swarm evidence validation without bypassing GRACE policy guards.</Intent>
+      <ModuleRef ref="DP-SVC-grace-mcp" />
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-grace-mcp-01" />
+        <Link ref="DevelopmentExecutionPlan.xml#W0-T1" />
+      </Links>
+    </FunctionContract>
+  </FunctionContracts>
+</DevelopmentPlan>

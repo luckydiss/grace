@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DevelopmentExecutionPlan version="1.0.0-product" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Wave id="W1" name="Workflow State Foundation">
+    <Task
+      id="W1-T1"
+      title="Define the canonical workflow state schema, transition event schema, and durable persistence surfaces"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-workflow-core"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-STATE-MACHINE"
+    />
+    <Task
+      id="W1-T2"
+      title="Define the full named state set, transition table, actor permissions, and guard categories"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-policy-engine"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-POLICY-GUARDS"
+    />
+  </Wave>
+
+  <Wave id="W2" name="Transition Engine and Guard Layer">
+    <Task
+      id="W2-T1"
+      title="Implement FC-grace-state-applyTransition as the only legal workflow mutation surface"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-workflow-core"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-STATE-MACHINE"
+    />
+    <Task
+      id="W2-T2"
+      title="Implement FC-grace-policy-evaluateGuards for approval, artifact, role, and semantic-scope checks"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-policy-engine"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-POLICY-GUARDS"
+    />
+    <Task
+      id="W2-T3"
+      title="Implement deterministic blocked and issue-report effects when a transition guard fails"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-artifact-adapters"
+      requirementsRef="RequirementsAnalysis.xml#DC-GRACE-ISSUE-REPORT"
+    />
+  </Wave>
+
+  <Wave id="W3" name="Bounded Executors and LangGraph Integration">
+    <Task
+      id="W3-T1"
+      title="Implement bounded role windows for architect, coordinator, and coder execution"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-executor-runtime"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-BOUNDED-EXECUTION"
+    />
+    <Task
+      id="W3-T2"
+      title="Materialize the full LangGraph product workflow with approval interrupts and failure branches"
+      blueprintRef="DevelopmentPlan.xml#Flow-GRACE-MainWorkflow"
+      requirementsRef="Technology.xml#DEC-GRACE-LANGGRAPH-001"
+    />
+  </Wave>
+
+  <Wave id="W4" name="Traceability, Verification, and Autonomy Bridge">
+    <Task
+      id="W4-T1"
+      title="Implement workflow-to-artifact trace validation across state, transitions, handoffs, CWOs, execution traces, and skill traces"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-validators"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-TRACEABILITY"
+    />
+    <Task
+      id="W4-T2"
+      title="Bridge W11 failure-memory, forced-context, and loop-guard artifacts into governed remediation states"
+      blueprintRef="DevelopmentPlan.xml#Flow-GRACE-FailureBranch"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-FAILURE-RECOVERY"
+    />
+  </Wave>
+
+  <Wave id="W5" name="V2.0 Core Completion">
+    <Task
+      id="W5-T1"
+      title="Implement workflow-owned emitters for handoff, BranchSpec, CWO, and approval artifacts so process evidence is materialized by transition effects instead of manual edits"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-artifact-adapters"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-TRACEABILITY"
+    />
+    <Task
+      id="W5-T2"
+      title="Bind approve_handoff to durable approval-log emission and reject transitions that do not leave matching approval evidence"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-artifact-adapters"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-HUMAN-APPROVAL"
+    />
+    <Task
+      id="W5-T3"
+      title="Implement a living-document synchronization gate that blocks workflow progress when product requirements, technology, and development plans fall out of sync with the active transition state"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-validators"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-TRACEABILITY"
+    />
+    <Task
+      id="W5-T4"
+      title="Add policy and schema consistency validation across workflow state, transition policy, actor permissions, and emitted artifact references"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-policy-engine"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-POLICY-GUARDS"
+    />
+    <Task
+      id="W5-T5"
+      title="Integrate grace into the root framework verify gate so workflow-control regressions fail the main repository verification path"
+      blueprintRef="DevelopmentPlan.xml#Flow-GRACE-MainWorkflow"
+      requirementsRef="RequirementsAnalysis.xml#NFR-GRACE-COMPATIBILITY"
+    />
+    <Task
+      id="W5-T6"
+      title="Emit a coordinator verification report that summarizes transition materialization, artifact effects, and Wave 5 gate outcomes for audit"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-validators"
+      requirementsRef="RequirementsAnalysis.xml#NFR-GRACE-AUDITABILITY"
+    />
+  </Wave>
+
+  <Wave id="W6" name="Migration Adapters and Product Pilot">
+    <Task
+      id="W6-T1"
+      title="Implement FC-grace-adapters-runLegacyValidator as the bounded adapter surface for legacy v1 validators and trace tools"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-v1-adapters"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-ADAPTER-COMPATIBILITY"
+    />
+    <Task
+      id="W6-T2"
+      title="Bind grace-validate, grace-execution-proof, grace-delivery-trace, and grace-traceability-coverage into v2 verification effects through explicit adapter configuration"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-v1-adapters"
+      requirementsRef="RequirementsAnalysis.xml#NFR-GRACE-COMPATIBILITY"
+    />
+    <Task
+      id="W6-T3"
+      title="Pilot the adapter-backed workflow on text2sql and emit a compatibility report comparing v1 evidence with v2-controlled execution"
+      blueprintRef="DevelopmentPlan.xml#Flow-GRACE-MainWorkflow"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-ADAPTER-COMPATIBILITY"
+    />
+  </Wave>
+  <Wave id="W7" name="Legacy Overlay Foundation">
+    <Task
+      id="W7-T1"
+      title="Define the legacy overlay model with productRoot, sourceRepoRoot, LegacyWorkspace.json, and SourceRepoMap.json so GRACE can govern an external legacy repository without modifying its source tree"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-runtime-targeting"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-ONBOARDING"
+    />
+    <Task
+      id="W7-T2"
+      title="Implement a read-only legacy bootstrap flow that creates a GRACE overlay workspace over an existing repository and materializes initial workflow, policy, and metadata artifacts without editing the source repository"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-legacy-onboarding"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-BOOTSTRAP"
+    />
+    <Task
+      id="W7-T3"
+      title="Implement validators and policy guards that prohibit onboarding writes to the source repository until explicit approval and write-mode authorization are present"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-policy-engine"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SAFE-MODE"
+    />
+    <Task
+      id="W7-T4"
+      title="Expose grace.legacy.bootstrap and grace.legacy.validate through grace-mcp so external clients can create and validate legacy overlay workspaces through governed MCP tools"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-mcp-surface"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-MCP"
+    />
+    <Task
+      id="W7-T5"
+      title="Expose overlay metadata and source repository mapping as MCP resources so clients can inspect the governed relationship between overlay workspace and legacy codebase"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-mcp-surface"
+      requirementsRef="RequirementsAnalysis.xml#NFR-GRACE-AUDITABILITY"
+    />
+  </Wave>
+  <Wave id="W8" name="Legacy Scan And Semantic Discovery">
+    <Task
+      id="W8-T1"
+      title="Implement grace.legacy.scan to discover file topology, languages, entrypoints, tests, configs, and dependency surfaces for a governed legacy repository"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-legacy-scan"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SCAN"
+    />
+    <Task
+      id="W8-T2"
+      title="Emit LegacyScanReport.json and LegacyRiskReport.json covering large files, generated paths, vendor paths, no-test zones, and structural risks such as cycles and oversized modules"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-legacy-scan"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SCAN"
+    />
+    <Task
+      id="W8-T3"
+      title="Implement grace.legacy.infer_contracts to produce draft MC, FC, and BA contracts from existing legacy code without mutating the underlying source files"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-legacy-contracts"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-CONTRACT-INFERENCE"
+    />
+    <Task
+      id="W8-T4"
+      title="Implement grace.legacy.trace_seed to materialize a LegacyGraphRegistry.json that seeds traceability from inferred contracts and discovered repository structure"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-legacy-traceability"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-TRACEABILITY"
+    />
+    <Task
+      id="W8-T5"
+      title="Implement grace.legacy.slice_propose to derive the first safe bounded modification slices from inferred contracts, repository risks, and traceability seeds"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-legacy-slicing"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SLICE-PROPOSAL"
+    />
+  </Wave>
+  <Wave id="W9" name="Legacy Workflow And Swarm Integration">
+    <Task
+      id="W9-T1"
+      title="Extend the workflow state model with governed legacy onboarding states including LEGACY_DISCOVERY_PENDING, LEGACY_SCAN_READY, LEGACY_CONTRACTS_DRAFTED, LEGACY_GRAPH_READY, and LEGACY_SLICE_READY"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-workflow-core"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-ONBOARDING"
+    />
+    <Task
+      id="W9-T2"
+      title="Add legacy onboarding transitions including bootstrap_legacy_overlay, scan_legacy_repo, infer_legacy_contracts, seed_legacy_traceability, and propose_legacy_slice"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-workflow-core"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-ONBOARDING"
+    />
+    <Task
+      id="W9-T3"
+      title="Bind legacy onboarding transitions to policy guards, validators, and issue-report effects so no legacy onboarding step can bypass governance"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-policy-engine"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-POLICY-GUARDS"
+    />
+    <Task
+      id="W9-T4"
+      title="Connect architect, coordinator, and coder role executors to the legacy onboarding path so swarm execution can analyze and prepare legacy repositories under bounded role windows"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-executor-runtime"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-BOUNDED-EXECUTION"
+    />
+    <Task
+      id="W9-T5"
+      title="Require the full agent evidence set of TaskPacket, Invocation, Execution, and SkillTrace for every legacy onboarding role run before workflow promotion is allowed"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-validators"
+      requirementsRef="RequirementsAnalysis.xml#NFR-GRACE-AUDITABILITY"
+    />
+    <Task
+      id="W9-T6"
+      title="Expose grace.legacy.start_onboarding so an external MCP client can drive the full governed legacy onboarding happy path up to the slice-ready boundary"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-mcp-surface"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-MCP"
+    />
+  </Wave>
+  <Wave id="W10" name="Legacy Safe Edit Path">
+    <Task
+      id="W10-T1"
+      title="Implement explicit write-mode policy with editable path whitelists so legacy modifications remain prohibited until the correct approval and authorization state is reached"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-policy-engine"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SAFE-MODE"
+    />
+    <Task
+      id="W10-T2"
+      title="Implement dry-run legacy edit planning so proposed modifications can be reviewed as governed output before any write reaches the source repository"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-legacy-slicing"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SLICE-PROPOSAL"
+    />
+    <Task
+      id="W10-T3"
+      title="Constrain coder execution on legacy repositories by FC and BA scope, editable file whitelist, and active CWO boundaries"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-executor-runtime"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-BOUNDED-EXECUTION"
+    />
+    <Task
+      id="W10-T4"
+      title="Emit block states, issue reports, and remediation hints whenever a legacy edit attempt violates write-mode policy, semantic scope, or bounded execution limits"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-artifact-adapters"
+      requirementsRef="RequirementsAnalysis.xml#DC-GRACE-ISSUE-REPORT"
+    />
+    <Task
+      id="W10-T5"
+      title="Expose governed MCP tools for the legacy edit cycle so external clients can review, authorize, and execute the first safe modification slice"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-mcp-surface"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-MCP"
+    />
+  </Wave>
+  <Wave id="W11" name="Legacy Pilots And Hardening">
+    <Task
+      id="W11-T1"
+      title="Pilot the governed legacy onboarding and safe edit path on a TypeScript or Node repository and record coverage, blockers, and remediation outcomes"
+      blueprintRef="DevelopmentPlan.xml#Flow-GRACE-MainWorkflow"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-ONBOARDING"
+    />
+    <Task
+      id="W11-T2"
+      title="Pilot the governed legacy onboarding and safe edit path on a Python repository and record coverage, blockers, and remediation outcomes"
+      blueprintRef="DevelopmentPlan.xml#Flow-GRACE-MainWorkflow"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-ONBOARDING"
+    />
+    <Task
+      id="W11-T3"
+      title="Pilot the governed legacy onboarding and safe edit path on a typed legacy repository such as Java or C# and record coverage, blockers, and remediation outcomes"
+      blueprintRef="DevelopmentPlan.xml#Flow-GRACE-MainWorkflow"
+      requirementsRef="RequirementsAnalysis.xml#UC-GRACE-LEGACY-ONBOARDING"
+    />
+    <Task
+      id="W11-T4"
+      title="Emit a compatibility and failure report summarizing scan quality, contract inference quality, slice proposal quality, safe edit outcomes, and blocked transition causes across pilots"
+      blueprintRef="DevelopmentPlan.xml#DP-SVC-grace-validators"
+      requirementsRef="RequirementsAnalysis.xml#NFR-GRACE-AUDITABILITY"
+    />
+    <Task
+      id="W11-T5"
+      title="Integrate legacy onboarding and safe edit regression coverage into the main framework verify path so the feature remains governed and non-regressing"
+      blueprintRef="DevelopmentPlan.xml#Flow-GRACE-MainWorkflow"
+      requirementsRef="RequirementsAnalysis.xml#NFR-GRACE-COMPATIBILITY"
+    />
+  </Wave>
+
+  <DeliveryPolicy id="DPOL-GRACE-SEMANTIC-SLICES">
+    <Rule>One coder chunk SHOULD target exactly one FC.</Rule>
+    <Rule>If an FC is too large, one chunk MAY target one to two BA regions inside the same FC.</Rule>
+    <Rule>Changed code volume SHOULD stay around 500 lines or less per chunk.</Rule>
+    <Rule>No more than 2-3 business-logic files SHOULD be changed in one coder chunk.</Rule>
+    <Rule>If a task cannot fit these bounds, coordinator must split it into a new CWO.</Rule>
+    <Links>
+      <Link ref="Technology.xml#DEC-GRACE-DELIVERY-CHUNKING-001" />
+    </Links>
+  </DeliveryPolicy>
+</DevelopmentExecutionPlan>

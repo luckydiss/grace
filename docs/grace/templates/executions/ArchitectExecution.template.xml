@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ArchitectExecution id="ARCHITECT-EXEC-TEMPLATE" traceId="TRACE-__PRODUCT_ID__-CORE" actorRole="ARCHITECT" sequence="0001">
+  <InputRefs><Ref value="docs/grace/DevelopmentPlan.xml" /></InputRefs>
+  <OutputRefs><Ref value="docs/grace/reports/architect-output.json" /></OutputRefs>
+  <RequiredSkillRefs><Skill name="mode-architect" /></RequiredSkillRefs>
+</ArchitectExecution>

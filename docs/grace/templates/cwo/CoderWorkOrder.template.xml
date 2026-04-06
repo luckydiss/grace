@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CODER_WORK_ORDER id="CWO-__PRODUCT_ID__-TEMPLATE" status="DRAFT" traceId="TRACE-__PRODUCT_ID__-CORE">
+  <HandoffRef>Handoff-__PRODUCT_ID__-TEMPLATE</HandoffRef>
+</CODER_WORK_ORDER>

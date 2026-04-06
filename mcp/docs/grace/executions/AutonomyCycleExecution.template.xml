@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AutonomyCycleExecution id="AUTO-EXEC-grace-mcp-01" traceId="TRACE-grace-mcp-CORE" actorRole="COORDINATOR" sequence="4">
+  <InputRefs>
+    <Ref value="docs/grace/reports/test-failure-envelope.json" />
+    <Ref value="docs/grace/reports/failure-memory.json" />
+  </InputRefs>
+  <OutputRefs>
+    <Ref value="docs/grace/reports/forced-context-bundle.json" />
+    <Ref value="docs/grace/reports/loop-guard-verdict.json" />
+  </OutputRefs>
+  <RequiredSkillRefs>
+    <Skill name="protocol-grace-retry-budget" />
+    <Skill name="protocol-grace-forced-context" />
+    <Skill name="protocol-grace-failure-memory" />
+  </RequiredSkillRefs>
+</AutonomyCycleExecution>

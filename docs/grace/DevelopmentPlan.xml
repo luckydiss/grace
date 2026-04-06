@@ -1,0 +1,476 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DevelopmentPlan version="1.0.0-product" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Services>
+    <Service id="DP-SVC-grace-workflow-core">
+      <Name>grace-workflow-core</Name>
+      <Description>Owns typed workflow state, transition execution, persistence, and LangGraph node routing.</Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-STATE-MACHINE" />
+        <Link ref="RequirementsAnalysis.xml#DC-GRACE-WORKFLOW-STATE" />
+        <Link ref="Technology.xml#DEC-GRACE-ENGINE-001" />
+        <Link ref="Technology.xml#DEC-GRACE-LANGGRAPH-001" />
+      </Links>
+    </Service>
+
+    <Service id="DP-SVC-grace-policy-engine">
+      <Name>grace-policy-engine</Name>
+      <Description>Loads transition policies, actor permissions, and guard declarations for state movement.</Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-POLICY-GUARDS" />
+        <Link ref="RequirementsAnalysis.xml#DC-GRACE-TRANSITION-POLICY" />
+        <Link ref="Technology.xml#DEC-GRACE-POLICY-001" />
+      </Links>
+    </Service>
+
+    <Service id="DP-SVC-grace-validators">
+      <Name>grace-validators</Name>
+      <Description>Evaluates artifact presence, approval state, semantic scope, trace consistency, and transition legality.</Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-POLICY-GUARDS" />
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-TRACEABILITY" />
+        <Link ref="RequirementsAnalysis.xml#NFR-GRACE-AUDITABILITY" />
+      </Links>
+    </Service>
+
+    <Service id="DP-SVC-grace-artifact-adapters">
+      <Name>grace-artifact-adapters</Name>
+      <Description>Maps transition effects to existing GRACE artifacts such as handoffs, approvals, CWOs, execution traces, and issue reports.</Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-HUMAN-APPROVAL" />
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-TRACEABILITY" />
+        <Link ref="Technology.xml#DEC-GRACE-EVIDENCE-001" />
+      </Links>
+    </Service>
+
+    <Service id="DP-SVC-grace-executor-runtime">
+      <Name>grace-executor-runtime</Name>
+      <Description>Runs architect, coordinator, and coder as bounded executors inside transition-scoped windows.</Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-BOUNDED-EXECUTION" />
+        <Link ref="RequirementsAnalysis.xml#NFR-GRACE-ROLE-BOUNDARY" />
+      </Links>
+    </Service>
+
+    <Service id="DP-SVC-grace-autonomy-bridge">
+      <Name>grace-autonomy-bridge</Name>
+      <Description>Bridges the current W11 failure-envelope, failure-memory, forced-context, and loop-guard artifacts into governed remediation states.</Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-FAILURE-RECOVERY" />
+        <Link ref="Technology.xml#DEC-GRACE-EVIDENCE-001" />
+      </Links>
+    </Service>
+
+    <Service id="DP-SVC-grace-v1-adapters">
+      <Name>grace-v1-adapters</Name>
+      <Description>Owns adapter surfaces that invoke legacy v1 validators, execution-proof, delivery-trace, and traceability coverage tools under v2 workflow control.</Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-ADAPTER-COMPATIBILITY" />
+        <Link ref="RequirementsAnalysis.xml#NFR-GRACE-COMPATIBILITY" />
+        <Link ref="Technology.xml#DEC-GRACE-ADAPTERS-001" />
+      </Links>
+    </Service>
+    <Service id="DP-SVC-grace-runtime-targeting">
+      <Name>grace-runtime-targeting</Name>
+      <Description>Resolves governed product roots, source repository roots, and overlay metadata so the workflow can control external legacy repositories safely.</Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-ONBOARDING" />
+        <Link ref="RequirementsAnalysis.xml#DC-GRACE-LEGACY-WORKSPACE" />
+        <Link ref="Technology.xml#DEC-GRACE-LEGACY-OVERLAY-001" />
+      </Links>
+    </Service>
+    <Service id="DP-SVC-grace-legacy-onboarding">
+      <Name>grace-legacy-onboarding</Name>
+      <Description>Creates and validates overlay workspaces for external legacy repositories without mutating their source trees during onboarding.</Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-ONBOARDING" />
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-BOOTSTRAP" />
+        <Link ref="RequirementsAnalysis.xml#DC-GRACE-LEGACY-WORKSPACE" />
+      </Links>
+    </Service>
+    <Service id="DP-SVC-grace-legacy-scan">
+      <Name>grace-legacy-scan</Name>
+      <Description>Scans legacy repositories and emits structural discovery, dependency, and risk reports for governed onboarding.</Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SCAN" />
+        <Link ref="RequirementsAnalysis.xml#DC-GRACE-LEGACY-SCAN-REPORT" />
+      </Links>
+    </Service>
+    <Service id="DP-SVC-grace-legacy-contracts">
+      <Name>grace-legacy-contracts</Name>
+      <Description>Infers draft MC, FC, and BA contracts over legacy code so semantic navigation and controlled modification can begin.</Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-CONTRACT-INFERENCE" />
+        <Link ref="RequirementsAnalysis.xml#DC-GRACE-LEGACY-CONTRACT-DRAFTS" />
+      </Links>
+    </Service>
+    <Service id="DP-SVC-grace-legacy-traceability">
+      <Name>grace-legacy-traceability</Name>
+      <Description>Seeds graph registry and traceability artifacts for onboarded legacy repositories.</Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-TRACEABILITY" />
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-CONTRACT-INFERENCE" />
+      </Links>
+    </Service>
+    <Service id="DP-SVC-grace-legacy-slicing">
+      <Name>grace-legacy-slicing</Name>
+      <Description>Proposes first safe bounded modification slices and dry-run edit plans for legacy repositories.</Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SLICE-PROPOSAL" />
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SAFE-MODE" />
+      </Links>
+    </Service>
+    <Service id="DP-SVC-grace-mcp-surface">
+      <Name>grace-mcp-surface</Name>
+      <Description>Exposes governed workflow, legacy onboarding, trace, and process artifacts through the grace-mcp server.</Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-MCP" />
+        <Link ref="RequirementsAnalysis.xml#NFR-GRACE-AUDITABILITY" />
+      </Links>
+    </Service>
+  </Services>
+
+  <Flows>
+    <Flow id="Flow-GRACE-MainWorkflow">
+      <Description>
+        Intake -> blueprint review -> handoff proposal -> approval interrupt -> CWO issuance
+        -> bounded architect/coordinator/coder execution -> verification -> traceability gate
+        -> release or remediation branch.
+      </Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-STATE-MACHINE" />
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-HUMAN-APPROVAL" />
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-BOUNDED-EXECUTION" />
+      </Links>
+    </Flow>
+
+    <Flow id="Flow-GRACE-FailureBranch">
+      <Description>
+        Verification fail -> failure capture -> failure memory append -> forced context injection
+        -> loop guard -> remediation allowed or blocked escalation.
+      </Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-FAILURE-RECOVERY" />
+      </Links>
+    </Flow>
+    <Flow id="Flow-GRACE-LegacyOnboarding">
+      <Description>
+        Legacy overlay bootstrap -> repository scan -> draft contract inference -> trace seed
+        -> first safe slice proposal -> approval boundary -> bounded safe edit path.
+      </Description>
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-ONBOARDING" />
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SCAN" />
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-CONTRACT-INFERENCE" />
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SLICE-PROPOSAL" />
+      </Links>
+    </Flow>
+  </Flows>
+
+  <SemanticContracts>
+    <ModuleMap id="MM-grace-workflow-core" target="src/state/index.ts,src/graph/workflow.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-STATE-MACHINE" />
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-workflow-core" />
+      </Links>
+    </ModuleMap>
+
+    <ModuleMap id="MM-grace-policy-engine" target="src/policies/index.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-POLICY-GUARDS" />
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-policy-engine" />
+      </Links>
+    </ModuleMap>
+
+    <ModuleMap id="MM-grace-validators" target="src/validators/index.ts,src/validators/living-doc.ts,src/validators/policy-schema-consistency.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-TRACEABILITY" />
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-validators" />
+      </Links>
+    </ModuleMap>
+
+    <ModuleMap id="MM-grace-artifact-adapters" target="src/artifacts/index.ts,src/artifacts/process-artifacts.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#DC-GRACE-ISSUE-REPORT" />
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-artifact-adapters" />
+      </Links>
+    </ModuleMap>
+
+    <ModuleMap id="MM-grace-autonomy-bridge" target="src/autonomy/index.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-FAILURE-RECOVERY" />
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-autonomy-bridge" />
+      </Links>
+    </ModuleMap>
+
+    <ModuleMap id="MM-grace-executors" target="src/executors/index.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-BOUNDED-EXECUTION" />
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-executor-runtime" />
+      </Links>
+    </ModuleMap>
+
+    <ModuleMap id="MM-grace-v1-adapters" target="src/adapters/index.ts,src/adapters/legacy-validator.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-ADAPTER-COMPATIBILITY" />
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-v1-adapters" />
+      </Links>
+    </ModuleMap>
+    <ModuleMap id="MM-grace-runtime-targeting" target="src/runtime/product-target.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-ONBOARDING" />
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-runtime-targeting" />
+      </Links>
+    </ModuleMap>
+    <ModuleMap id="MM-grace-legacy-onboarding" target="src/legacy/index.ts,src/legacy/bootstrap.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-BOOTSTRAP" />
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-legacy-onboarding" />
+      </Links>
+    </ModuleMap>
+    <ModuleMap id="MM-grace-legacy-scan" target="src/legacy/scan.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SCAN" />
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-legacy-scan" />
+      </Links>
+    </ModuleMap>
+    <ModuleMap id="MM-grace-legacy-contracts" target="src/legacy/contracts.ts,src/legacy/infer-contracts.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-CONTRACT-INFERENCE" />
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-legacy-contracts" />
+      </Links>
+    </ModuleMap>
+    <ModuleMap id="MM-grace-legacy-traceability" target="src/legacy/trace-seed.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-TRACEABILITY" />
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-legacy-traceability" />
+      </Links>
+    </ModuleMap>
+    <ModuleMap id="MM-grace-legacy-slicing" target="src/legacy/slice-propose.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SLICE-PROPOSAL" />
+        <Link ref="DevelopmentPlan.xml#DP-SVC-grace-legacy-slicing" />
+      </Links>
+    </ModuleMap>
+
+    <ModuleContract id="MC-grace-workflow-core" target="src/state/index.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-STATE-MACHINE" />
+        <Link ref="RequirementsAnalysis.xml#DC-GRACE-WORKFLOW-STATE" />
+      </Links>
+    </ModuleContract>
+
+    <ModuleContract id="MC-grace-policy-engine" target="src/policies/index.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-POLICY-GUARDS" />
+        <Link ref="RequirementsAnalysis.xml#DC-GRACE-TRANSITION-POLICY" />
+      </Links>
+    </ModuleContract>
+
+    <ModuleContract id="MC-grace-validators" target="src/validators/index.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-TRACEABILITY" />
+        <Link ref="RequirementsAnalysis.xml#NFR-GRACE-AUDITABILITY" />
+      </Links>
+    </ModuleContract>
+
+    <ModuleContract id="MC-grace-artifact-adapters" target="src/artifacts/index.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#DC-GRACE-ISSUE-REPORT" />
+        <Link ref="RequirementsAnalysis.xml#NFR-GRACE-AUDITABILITY" />
+      </Links>
+    </ModuleContract>
+
+    <ModuleContract id="MC-grace-autonomy-bridge" target="src/autonomy/index.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-FAILURE-RECOVERY" />
+        <Link ref="Technology.xml#DEC-GRACE-EVIDENCE-001" />
+      </Links>
+    </ModuleContract>
+
+    <ModuleContract id="MC-grace-executors" target="src/executors/index.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-BOUNDED-EXECUTION" />
+        <Link ref="RequirementsAnalysis.xml#NFR-GRACE-ROLE-BOUNDARY" />
+      </Links>
+    </ModuleContract>
+
+    <ModuleContract id="MC-grace-v1-adapters" target="src/adapters/index.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-ADAPTER-COMPATIBILITY" />
+        <Link ref="RequirementsAnalysis.xml#NFR-GRACE-COMPATIBILITY" />
+      </Links>
+    </ModuleContract>
+    <ModuleContract id="MC-grace-runtime-targeting" target="src/runtime/product-target.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-ONBOARDING" />
+        <Link ref="RequirementsAnalysis.xml#DC-GRACE-LEGACY-WORKSPACE" />
+      </Links>
+    </ModuleContract>
+    <ModuleContract id="MC-grace-legacy-onboarding" target="src/legacy/index.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-BOOTSTRAP" />
+        <Link ref="RequirementsAnalysis.xml#DC-GRACE-LEGACY-WORKSPACE" />
+      </Links>
+    </ModuleContract>
+    <ModuleContract id="MC-grace-legacy-scan" target="src/legacy/scan.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SCAN" />
+        <Link ref="RequirementsAnalysis.xml#DC-GRACE-LEGACY-SCAN-REPORT" />
+      </Links>
+    </ModuleContract>
+    <ModuleContract id="MC-grace-legacy-contracts" target="src/legacy/contracts.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-CONTRACT-INFERENCE" />
+        <Link ref="RequirementsAnalysis.xml#DC-GRACE-LEGACY-CONTRACT-DRAFTS" />
+      </Links>
+    </ModuleContract>
+    <ModuleContract id="MC-grace-legacy-slicing" target="src/legacy/slice-propose.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SLICE-PROPOSAL" />
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SAFE-MODE" />
+      </Links>
+    </ModuleContract>
+
+    <FunctionContract id="FC-grace-state-applyTransition" target="src/state/transition-engine.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-STATE-MACHINE" />
+        <Link ref="DevelopmentPlan.xml#Flow-GRACE-MainWorkflow" />
+      </Links>
+    </FunctionContract>
+
+    <FunctionContract id="FC-grace-graph-buildWorkflow" target="src/graph/workflow.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-HUMAN-APPROVAL" />
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-FAILURE-RECOVERY" />
+        <Link ref="Technology.xml#DEC-GRACE-LANGGRAPH-001" />
+      </Links>
+    </FunctionContract>
+
+    <FunctionContract id="FC-grace-policy-evaluateGuards" target="src/policies/guard-engine.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-POLICY-GUARDS" />
+      </Links>
+    </FunctionContract>
+
+    <FunctionContract id="FC-grace-artifacts-emitIssueReport" target="src/artifacts/issue-report.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#DC-GRACE-ISSUE-REPORT" />
+      </Links>
+    </FunctionContract>
+
+    <FunctionContract id="FC-grace-artifacts-emitWorkflowOwnedArtifacts" target="src/artifacts/process-artifacts.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-TRACEABILITY" />
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-HUMAN-APPROVAL" />
+      </Links>
+    </FunctionContract>
+
+    <FunctionContract id="FC-grace-autonomy-executeRecovery" target="src/autonomy/recovery-bridge.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-FAILURE-RECOVERY" />
+        <Link ref="DevelopmentPlan.xml#Flow-GRACE-FailureBranch" />
+      </Links>
+    </FunctionContract>
+
+    <FunctionContract id="FC-grace-executors-runBoundedRole" target="src/executors/run-bounded-role.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-BOUNDED-EXECUTION" />
+      </Links>
+    </FunctionContract>
+
+    <FunctionContract id="FC-grace-validators-validateTransitionEvidence" target="src/validators/transition-evidence.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-TRACEABILITY" />
+      </Links>
+    </FunctionContract>
+
+    <FunctionContract id="FC-grace-validators-validateLivingDocs" target="src/validators/living-doc.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-TRACEABILITY" />
+        <Link ref="RequirementsAnalysis.xml#NFR-GRACE-AUDITABILITY" />
+      </Links>
+    </FunctionContract>
+
+    <FunctionContract id="FC-grace-validators-validatePolicySchemaConsistency" target="src/validators/policy-schema-consistency.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-POLICY-GUARDS" />
+        <Link ref="RequirementsAnalysis.xml#NFR-GRACE-COMPATIBILITY" />
+      </Links>
+    </FunctionContract>
+
+    <FunctionContract id="FC-grace-adapters-runLegacyValidator" target="src/adapters/legacy-validator.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-ADAPTER-COMPATIBILITY" />
+        <Link ref="RequirementsAnalysis.xml#NFR-GRACE-COMPATIBILITY" />
+      </Links>
+    </FunctionContract>
+    <FunctionContract id="FC-grace-legacy-bootstrapOverlay" target="src/legacy/bootstrap.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-BOOTSTRAP" />
+        <Link ref="DevelopmentPlan.xml#Flow-GRACE-LegacyOnboarding" />
+      </Links>
+    </FunctionContract>
+    <FunctionContract id="FC-grace-legacy-scanRepository" target="src/legacy/scan.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SCAN" />
+        <Link ref="DevelopmentPlan.xml#Flow-GRACE-LegacyOnboarding" />
+      </Links>
+    </FunctionContract>
+    <FunctionContract id="FC-grace-legacy-inferContracts" target="src/legacy/infer-contracts.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-CONTRACT-INFERENCE" />
+        <Link ref="DevelopmentPlan.xml#Flow-GRACE-LegacyOnboarding" />
+      </Links>
+    </FunctionContract>
+    <FunctionContract id="FC-grace-legacy-seedTraceability" target="src/legacy/trace-seed.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-TRACEABILITY" />
+        <Link ref="DevelopmentPlan.xml#Flow-GRACE-LegacyOnboarding" />
+      </Links>
+    </FunctionContract>
+    <FunctionContract id="FC-grace-legacy-proposeSlice" target="src/legacy/slice-propose.ts">
+      <Links>
+        <Link ref="RequirementsAnalysis.xml#UC-GRACE-LEGACY-SLICE-PROPOSAL" />
+        <Link ref="DevelopmentPlan.xml#Flow-GRACE-LegacyOnboarding" />
+      </Links>
+    </FunctionContract>
+
+    <BlockAnchor id="BA-grace-load-state" owner="FC-grace-state-applyTransition" />
+    <BlockAnchor id="BA-grace-evaluate-transition" owner="FC-grace-state-applyTransition" />
+    <BlockAnchor id="BA-grace-persist-transition" owner="FC-grace-state-applyTransition" />
+    <BlockAnchor id="BA-grace-route-main" owner="FC-grace-graph-buildWorkflow" />
+    <BlockAnchor id="BA-grace-route-approval" owner="FC-grace-graph-buildWorkflow" />
+    <BlockAnchor id="BA-grace-route-failure" owner="FC-grace-graph-buildWorkflow" />
+    <BlockAnchor id="BA-grace-load-policy" owner="FC-grace-policy-evaluateGuards" />
+    <BlockAnchor id="BA-grace-evaluate-guards" owner="FC-grace-policy-evaluateGuards" />
+    <BlockAnchor id="BA-grace-issue-block" owner="FC-grace-policy-evaluateGuards" />
+    <BlockAnchor id="BA-grace-build-issue-report" owner="FC-grace-artifacts-emitIssueReport" />
+    <BlockAnchor id="BA-grace-persist-issue-report" owner="FC-grace-artifacts-emitIssueReport" />
+    <BlockAnchor id="BA-grace-build-process-artifact" owner="FC-grace-artifacts-emitWorkflowOwnedArtifacts" />
+    <BlockAnchor id="BA-grace-persist-process-artifact" owner="FC-grace-artifacts-emitWorkflowOwnedArtifacts" />
+    <BlockAnchor id="BA-grace-append-failure-memory" owner="FC-grace-autonomy-executeRecovery" />
+    <BlockAnchor id="BA-grace-build-forced-context" owner="FC-grace-autonomy-executeRecovery" />
+    <BlockAnchor id="BA-grace-evaluate-loop-guard" owner="FC-grace-autonomy-executeRecovery" />
+    <BlockAnchor id="BA-grace-open-window" owner="FC-grace-executors-runBoundedRole" />
+    <BlockAnchor id="BA-grace-run-role" owner="FC-grace-executors-runBoundedRole" />
+    <BlockAnchor id="BA-grace-close-window" owner="FC-grace-executors-runBoundedRole" />
+    <BlockAnchor id="BA-grace-run-legacy-command" owner="FC-grace-adapters-runLegacyValidator" />
+    <BlockAnchor id="BA-grace-persist-legacy-report" owner="FC-grace-adapters-runLegacyValidator" />
+    <BlockAnchor id="BA-grace-validate-trace" owner="FC-grace-validators-validateTransitionEvidence" />
+    <BlockAnchor id="BA-grace-validate-artifacts" owner="FC-grace-validators-validateTransitionEvidence" />
+    <BlockAnchor id="BA-grace-validate-living-docs" owner="FC-grace-validators-validateLivingDocs" />
+    <BlockAnchor id="BA-grace-persist-living-doc-report" owner="FC-grace-validators-validateLivingDocs" />
+    <BlockAnchor id="BA-grace-validate-policy-schema" owner="FC-grace-validators-validatePolicySchemaConsistency" />
+    <BlockAnchor id="BA-grace-persist-policy-schema-report" owner="FC-grace-validators-validatePolicySchemaConsistency" />
+    <BlockAnchor id="BA-grace-resolve-overlay-roots" owner="FC-grace-legacy-bootstrapOverlay" />
+    <BlockAnchor id="BA-grace-persist-overlay-metadata" owner="FC-grace-legacy-bootstrapOverlay" />
+    <BlockAnchor id="BA-grace-scan-legacy-topology" owner="FC-grace-legacy-scanRepository" />
+    <BlockAnchor id="BA-grace-persist-legacy-scan-report" owner="FC-grace-legacy-scanRepository" />
+    <BlockAnchor id="BA-grace-infer-legacy-module-contracts" owner="FC-grace-legacy-inferContracts" />
+    <BlockAnchor id="BA-grace-infer-legacy-function-contracts" owner="FC-grace-legacy-inferContracts" />
+    <BlockAnchor id="BA-grace-seed-legacy-graph" owner="FC-grace-legacy-seedTraceability" />
+    <BlockAnchor id="BA-grace-persist-legacy-graph" owner="FC-grace-legacy-seedTraceability" />
+    <BlockAnchor id="BA-grace-propose-legacy-slices" owner="FC-grace-legacy-proposeSlice" />
+    <BlockAnchor id="BA-grace-persist-legacy-slice-plan" owner="FC-grace-legacy-proposeSlice" />
+  </SemanticContracts>
+</DevelopmentPlan>
