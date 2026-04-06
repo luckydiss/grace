@@ -1,7 +1,7 @@
-# GRACE MCP
+# 🔌 GRACE MCP Server
 
-`GRACE MCP` — встроенный MCP-сервер для framework `GRACE`.  
-Сервер предоставляет внешний доступ к реальному runtime, а не дублирует orchestration logic в отдельном слое.
+> **Официальный Model Context Protocol (MCP) сервер для фреймворка GRACE.**  
+> Предоставляет внешний программный доступ к runtime-модели GRACE для AI-агентов (Codex, Cursor, Claude Desktop), операторских UI и систем автоматизации без дублирования бизнес-логики.
 
 ---
 
@@ -12,529 +12,178 @@
 
 ---
 
-## Назначение
+## 📖 Содержание
+1. [Назначение и Архитектура](#-назначение-и-архитектурная-роль)
+2. [Режимы Транспорта (Transport Modes)](#-режимы-транспорта-transport-modes)
+3. [Публичный Интерфейс (Tools & Resources)](#-публичный-интерфейс-tools--resources)
+4. [Модель Безопасности и HTTP Runtime](#-модель-безопасности-и-http-runtime)
+5. [Развертывание и Запуск](#%EF%B8%8F-развертывание-и-запуск)
+6. [Интеграция с Клиентами (Codex, IDE)](#-интеграция-с-клиентами)
 
-`GRACE MCP` используется как внешний control plane для:
+---
 
-- Codex
-- MCP-compatible agent clients
-- automation tooling
-- операторских UI и dashboard surfaces
-- internal engineering integrations
+## 🎯 Назначение и Архитектурная Роль
 
-Сервер открывает наружу:
+`GRACE MCP` — это "пульт управления" для вашего GRACE-фреймворка. Он используется как внешний *control plane* для подключения ИИ-агентов к вашей кодовой базе.
 
-- lifecycle operations для workflow
-- product bootstrap and validation
-- state/history/blockers/trace observability
-- artifact и report access
-- agent evidence inspection
-- legacy onboarding chain
-- dry-run validation для legacy edit path
+**Ключевое правило:** Сервер является *тонким прокси* (thin wrapper).  
+Он не дублирует оркестрацию (orchestration logic) в отдельный слой. Все команды прокидываются строго в ядро фреймворка `GRACE`, которое генерирует переходы состояний, проверяет политики и формирует артефакты. Это гарантирует отсутствие двойного источника правды (Single Source of Truth) и оставляет сервер легковесным.
 
-## Архитектурная Роль
+**Для чего это нужно?**
+- Подключение **Codex / Cursor / LLM Agents** к процессам разработки (так, чтобы они подчинялись правилам GRACE).
+- Построение аналитических дашбордов и операторских UI.
+- Интеграция между различными внутренними сервисами компании.
+- Аудит безопасности работы ИИ.
 
-`GRACE MCP` не является отдельным workflow engine.  
-Все управляющие действия делегируются в основной runtime `GRACE`.
+---
 
-Схема работы:
+## 🚀 Режимы Транспорта (Transport Modes)
 
-1. MCP client вызывает tool или resource.
-2. MCP handler вызывает соответствующий runtime surface внутри framework.
-3. Framework materializes state changes, artifacts и evidence.
-4. MCP возвращает structured result клиенту.
+Сервер поддерживает два стандарта связи в рамках Model Context Protocol:
 
-Из этого следуют два свойства:
+### 1. `stdio` (Стандартный ввод-вывод)
+Идеален для локального запуска (например, внутри вашей IDE или десктопного агента). Агент вызывает MCP как дочерний процесс операционной системы.
+- Запуск из корня GRACE: `npm run mcp:start`
+- Запуск прямо из директории mcp: `npm run start`
 
-- MCP surface остается thin и управляемым
-- источник правды остается внутри `GRACE`, а не размазывается между несколькими API слоями
+### 2. `HTTP POST` (Сетевой доступ)
+Используется для удаленных клиентов, ИИ-шлюзов (Agent Gateways) и интеграции микросервисов. В этом режиме сервер поднимает полноценный HTTP сервер.
+- **Endpoint**: `POST /mcp` (Методы GET и DELETE заблокированы с кодом `405`).
+- Поддержка жестких лимитов безопасности и авторизации.
+- Запуск из корня: `npm run mcp:start:http`
 
-## Transport Modes
+---
 
-Поддерживаются два режима работы.
+## 🛠 Публичный Интерфейс (Tools & Resources)
 
-### 1. stdio
+Сервер предоставляет богатый набор "инструментов" (Tools для изменения состояния) и "ресурсов" (Resources для чтения).
 
-Предназначен для:
+### 🛠 Tools (Инструменты Мутации и Анализа)
 
-- локального запуска из Codex
-- CLI-интеграций
-- однопроцессных developer workflows
+#### 1. Управление Продуктами и Базовым Жизненным Циклом
+- `grace.products.list` / `bootstrap` / `validate` / `start_workflow`
+*Создание, инициализация и запуск процессов над продуктами.*
 
-Команда:
+#### 2. Workflow & Оркестрация
+- `grace.workflow.state` / `history` / `blockers` / `trace`  **(Observability)**
+- `grace.workflow.start` / `resume` / `approve` / `reject`  **(Lifecycle Control)**
+- `grace.workflow.execution_proof` / `delivery_trace`  **(Внешняя валидация)**
+*Чтение причин блокировок машин состояний, проверка истории переходов и ручное управление прерываниями (appoval).*
 
-```bash
-npm run start
-```
+#### 3. Legacy Подсистема
+- `grace.legacy.bootstrap` / `scan` / `infer_contracts` / `slice_propose`
+- `grace.legacy.start_onboarding` / `edit_dry_run`
+*Позволяет агенту ИИ просканировать старый проект, предложить "срез" для рефакторинга и прогнать Dry-Run изменений без порчи кода.*
 
-### 2. HTTP
-
-Предназначен для:
-
-- remote MCP clients
-- agent gateways
-- internal service-to-service integration
-- операторских frontend surfaces
-
-Команда:
-
-```bash
-npm run start:http
-```
-
-HTTP endpoint:
-
-- `POST /mcp`
-
-Unsupported methods:
-
-- `GET /mcp` -> `405`
-- `DELETE /mcp` -> `405`
-
-## Repository Structure
-
-```text
-mcp/
-  src/
-    server.ts            MCP server definition
-    http-server.ts       HTTP transport
-    runtime/
-      handlers.ts        tool and resource handlers
-      config.ts          runtime configuration
-  package.json
-  tsconfig.json
-  README.md
-```
-
-## Tool Surface
-
-Ниже перечислен текущий публичный tool surface.
-
-### Server
-
-- `grace.server.info`
-
-Назначение:
-
-- server metadata
-- protocol version
-- auth requirement
-- HTTP runtime constraints
-
-### Products
-
-- `grace.products.list`
-- `grace.products.bootstrap`
-- `grace.products.start_workflow`
-- `grace.products.validate`
-
-Назначение:
-
-- discovery product workspaces
-- bootstrap нового GRACE workspace
-- bootstrap и доведение до approval boundary
-- product validation
-
-### Workflow
-
-- `grace.workflow.state`
-- `grace.workflow.history`
-- `grace.workflow.blockers`
-- `grace.workflow.trace`
-- `grace.workflow.start`
-- `grace.workflow.resume`
-- `grace.workflow.approve`
-- `grace.workflow.reject`
-- `grace.workflow.validate`
-- `grace.workflow.execution_proof`
-- `grace.workflow.delivery_trace`
-
-Назначение:
-
-- чтение текущего workflow state
-- чтение transition history
-- чтение block reasons и issue pointers
-- compact trace summary
-- запуск и продолжение workflow
-- approve/reject branches
-- единый validation bundle
-- execution-proof и delivery-trace validators
-
-### Legacy
-
-- `grace.legacy.bootstrap`
-- `grace.legacy.validate`
-- `grace.legacy.scan`
-- `grace.legacy.infer_contracts`
-- `grace.legacy.trace_seed`
-- `grace.legacy.slice_propose`
-- `grace.legacy.start_onboarding`
-- `grace.legacy.edit_dry_run`
-
-Назначение:
-
-- overlay bootstrap для legacy repository
-- overlay validation
-- structural scan
-- draft contract inference
-- graph seed
-- bounded slice proposal
-- governed onboarding path
-- dry-run validation для write path
-
-### Agent / Evidence / Process
-
-- `grace.agent.evidence`
-- `grace.agent.trace`
+#### 4. Внутренняя Инспекция (Evidence & Agent Tools)
+- `grace.agent.evidence` / `grace.agent.trace`
 - `grace.process.artifacts`
 - `grace.autonomy.status`
+*Доступ к памяти об ошибках (failure memory), журналам вызовов (traces) навыков агентов и конкретным артефактам.*
 
-Назначение:
+### 📂 Resources (Ресурсы только для чтения)
 
-- проверка полного evidence set по ролям
-- чтение architect/coordinator/coder traces
-- чтение handoff/CWO/branch spec/approval surfaces
-- чтение failure-memory, forced-context и loop-guard status
-
-### Artifact Read Surface
-
-- `grace.report.read`
-- `grace.artifact.read`
-
-Назначение:
-
-- чтение report files
-- чтение arbitrary GRACE artifacts внутри product workspace
-
-## Resource Surface
-
-Поддерживаются MCP resources для read-oriented клиентов.
-
-### Server
-
+Ресурсы возвращаются через строгий URI для максимального удобства интеграции на стороне LLM. Большинство тулов автоматически триггерят `resources/list_changed` при мутации.
 - `grace://server/info`
-
-### Product Discovery
-
 - `grace://products`
+- `grace://product/{productId}/state` (а также `/history`, `/trace`, `/blockers`, `/autonomy`)
+- `grace://product/{productId}/legacy/overlay` (а также `/source-map`, `/scan`, `/contracts`, `/graph`, `/slices`)
 
-### Product State And Observability
+---
 
-- `grace://product/{productId}/state`
-- `grace://product/{productId}/history`
-- `grace://product/{productId}/trace`
-- `grace://product/{productId}/blockers`
-- `grace://product/{productId}/autonomy`
-- `grace://product/{productId}/agents`
-- `grace://product/{productId}/process`
+## 🔒 Модель Безопасности и HTTP Runtime
 
-### Legacy Resources
+Если вы используете `HTTP POST`, GRACE MCP предоставляет продакшен-ready систему защиты.
 
-- `grace://product/{productId}/legacy/overlay`
-- `grace://product/{productId}/legacy/source-map`
-- `grace://product/{productId}/legacy/scan`
-- `grace://product/{productId}/legacy/contracts`
-- `grace://product/{productId}/legacy/graph`
-- `grace://product/{productId}/legacy/slices`
+### 1. Bearer Authentication
+Для активации защиты задайте `GRACE_MCP_AUTH_TOKEN`.
+Сервер будет принимать только вызовы с заголовком:
+```http
+Authorization: Bearer <your-token>
+```
+*Без токена: ответ `401 Unauthorized` + Header `WWW-Authenticate: Bearer realm="grace-mcp"`*
 
-## Resource Refresh Model
+### 2. Protocol Version Enforcement (Проверка версии)
+Запрещает старым клиентам общаться с сервером по устаревшему контракту.  
+Включается флагом `GRACE_MCP_REQUIRE_VERSION_HEADER=true`.
+Требует заголовок: `x-grace-mcp-protocol-version: 2026-04-05`.
 
-Mutation tools вызывают `resources/list_changed`, чтобы клиент мог обновлять:
+### 3. Защита от спама и Payload-атак
+- **Body Limit**: Флаг `GRACE_MCP_MAX_BODY_BYTES` запрещает огромные JSON-тела (ответ `413 Payload Too Large`). По умолчанию — 1MB.
+- **Rate Limit**: Флаг `GRACE_MCP_RATE_LIMIT_PER_MINUTE` активирует in-memory защиту от DDOS (по IP). `429 Too Many Requests`.
+- **Request Timeout**: Ограничение максимального времени ответа базы.
 
-- product list
-- workflow state
-- reports
-- legacy onboarding artifacts
+Все сетевые ошибки сервера совместимы со стандартом `JSON-RPC`, что делает интеграцию предсказуемой.
 
-Это особенно важно для:
+---
 
-- bootstrap operations
-- start/resume/approve/reject transitions
-- legacy onboarding chain
+## ⚙️ Развертывание и Запуск
 
-## Input Contracts
-
-Большинство mutating tools принимают:
-
-- `repoRoot`
-- `productRoot`
-- `productId`
-
-Legacy-specific tools также используют:
-
-- `sourceRepoRoot`
-- `sliceId`
-- `requestedWritePaths`
-- `writeModeAuthorized`
-
-Workflow resume path использует:
-
-- `approvalDecision`
-
-## Output Format
-
-Tool responses возвращаются как structured JSON payload внутри MCP text content.  
-Resources отдаются как JSON content с соответствующим `uri`.
-
-Это позволяет:
-
-- использовать MCP client как thin orchestrator
-- не парсить человеко-ориентированные строки
-- стабильно автоматизировать проверки и переходы
-
-## HTTP Runtime Contract
-
-### Endpoint
-
-- `POST /mcp`
-
-### Response Headers
-
-Сервер выставляет:
-
-- `x-grace-mcp-protocol-version`
-- `x-grace-mcp-server-version`
-- `x-grace-mcp-server-name`
-
-### Cache Behavior
-
-Сервер выставляет:
-
-- `cache-control: no-store`
-
-### Error Model
-
-HTTP layer использует JSON-RPC compatible error envelopes для:
-
-- unauthorized requests
-- protocol mismatch
-- missing required version header
-- oversized bodies
-- rate limiting
-- internal server error
-
-## Security And Hardening
-
-### Bearer Auth
-
-Если задан `GRACE_MCP_AUTH_TOKEN`, сервер требует:
-
-- `Authorization: Bearer <token>`
-
-При отсутствии или несовпадении токена:
-
-- ответ `401`
-- header `WWW-Authenticate: Bearer realm="grace-mcp"`
-
-### Protocol Version Enforcement
-
-Сервер может требовать header:
-
-- `x-grace-mcp-protocol-version`
-
-Если включен strict mode и header отсутствует:
-
-- ответ `428`
-
-Если header задан, но версия не совпадает:
-
-- ответ `400`
-
-### Request Size Limit
-
-Сервер контролирует:
-
-- `content-length`
-- maximum body size
-
-При превышении лимита:
-
-- ответ `413`
-
-### Rate Limit
-
-Используется простой in-memory rate limiter по IP.
-
-При превышении лимита:
-
-- ответ `429`
-
-### Request Timeout
-
-HTTP server поддерживает timeout на уровне transport layer.
-
-## Environment Variables
-
-### Supported Variables
-
-- `PORT`
-- `GRACE_MCP_AUTH_TOKEN`
-- `GRACE_MCP_SERVER_VERSION`
-- `GRACE_MCP_PROTOCOL_VERSION`
-- `GRACE_MCP_REQUIRE_VERSION_HEADER`
-- `GRACE_MCP_MAX_BODY_BYTES`
-- `GRACE_MCP_RATE_LIMIT_PER_MINUTE`
-- `GRACE_MCP_REQUEST_TIMEOUT_MS`
-
-### Default Semantics
-
-- `PORT` — default `3001`
-- `GRACE_MCP_AUTH_TOKEN` — optional bearer auth token
-- `GRACE_MCP_SERVER_VERSION` — server version override
-- `GRACE_MCP_PROTOCOL_VERSION` — protocol version override
-- `GRACE_MCP_REQUIRE_VERSION_HEADER` — `false` by default
-- `GRACE_MCP_MAX_BODY_BYTES` — default `1048576`
-- `GRACE_MCP_RATE_LIMIT_PER_MINUTE` — default `60`
-- `GRACE_MCP_REQUEST_TIMEOUT_MS` — default `30000`
-
-## Installation
-
-Из корня framework:
-
+### Установка пакета
+MCP пакет изолирован, вы можете ставить пакеты отдельно:
 ```bash
-npm --prefix mcp install
+# Для всего GRACE
+cd ../ && npm install
+
+# Только MCP
+cd mcp && npm install
 ```
 
-Из папки `mcp/`:
-
+### Сборка
 ```bash
-npm install
+cd mcp && npm run build
 ```
 
-## Build
-
-Из корня framework:
-
+### Тестирование пакета
 ```bash
-npm run mcp:build
+cd mcp && npm test
 ```
+*Тесты покрывают HTTP-транспорт, роутер, валидацию заголовков, лимиты, auth-слой и провязку с Workflow Engine.*
 
-Из папки `mcp/`:
-
+### Пример Production Deployment (HTTP)
+Для сервера в докер-контейнере или как SystemD сервис:
 ```bash
-npm run build
-```
+# Установка важных Production-флагов (Linux / macOS)
+export GRACE_MCP_AUTH_TOKEN="replace-with-mega-secure-token"
+export GRACE_MCP_PROTOCOL_VERSION="2026-04-05"
+export GRACE_MCP_REQUIRE_VERSION_HEADER="true"
+export GRACE_MCP_MAX_BODY_BYTES="1048576"            
+export GRACE_MCP_RATE_LIMIT_PER_MINUTE="60"          
+export GRACE_MCP_REQUEST_TIMEOUT_MS="30000"          
+export PORT="3001"
 
-## Test
-
-Из корня framework:
-
-```bash
-npm run mcp:test
-```
-
-Из папки `mcp/`:
-
-```bash
-npm run test
-```
-
-Тестовый набор покрывает:
-
-- server bootstrap
-- handlers
-- stdio-safe imports
-- HTTP app behavior
-- auth checks
-- protocol-version checks
-- request size limits
-- rate limiting
-- workflow and legacy integration surface
-
-## Run Commands
-
-### From Framework Root
-
-```bash
-npm run mcp:start
-npm run mcp:start:http
-```
-
-### From `mcp/`
-
-```bash
-npm run start
 npm run start:http
 ```
 
-## Production Deployment Profile
+---
 
-Рекомендуемая последовательность запуска:
+## 🔌 Интеграция с Клиентами
 
-1. установить root dependencies
-2. установить `mcp` dependencies
-3. собрать framework
-4. собрать MCP
-5. прогнать verify
-6. задать security-related environment variables
-7. запускать HTTP mode
+### Пример для локального агента (Codex / Cursor)
+Для локальных агентов вы обычно настраиваете конфигурационный файл MCP клиента.
+Пример конфигурации (`mcp.json` / `cursor.json`):
+```json
+{
+  "mcpServers": {
+    "grace-local": {
+      "command": "npm",
+      "args": ["run", "start"],
+      "cwd": "/path/to/grace/mcp"
+    }
+  }
+}
+```
 
-Пример:
-
+### HTTP Вызов из любого приложения
 ```bash
-set GRACE_MCP_AUTH_TOKEN=replace-with-long-random-token
-set GRACE_MCP_PROTOCOL_VERSION=2026-04-05
-set GRACE_MCP_REQUIRE_VERSION_HEADER=true
-set GRACE_MCP_MAX_BODY_BYTES=1048576
-set GRACE_MCP_RATE_LIMIT_PER_MINUTE=60
-set GRACE_MCP_REQUEST_TIMEOUT_MS=30000
-npm run start:http
+curl -X POST http://127.0.0.1:3001/mcp \
+  -H "Authorization: Bearer replace-with-mega-secure-token" \
+  -H "x-grace-mcp-protocol-version: 2026-04-05" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "grace.products.list", "arguments": {}}}'
 ```
 
-## Codex / MCP Client Usage
+---
 
-### stdio Registration
-
-Пример запуска через локальный client:
-
-```bash
-npm run mcp:start
-```
-
-### HTTP Registration
-
-После запуска HTTP mode endpoint будет доступен по адресу:
-
-```text
-http://127.0.0.1:3001/mcp
-```
-
-Если включен bearer auth, клиент должен передавать token.  
-Если включено protocol enforcement, клиент должен передавать `x-grace-mcp-protocol-version`.
-
-## Operational Notes
-
-`GRACE MCP` не хранит отдельное состояние, независимое от framework runtime.  
-Все операции выполняются поверх:
-
-- framework product workspaces
-- workflow artifacts
-- runtime-generated evidence
-- legacy overlay metadata
-
-Это упрощает debugging, audit и rollback analysis.
-
-## When To Use This Package
-
-`GRACE MCP` подходит, если требуется:
-
-- подключить `GRACE` к Codex или другому MCP client
-- автоматизировать workflow lifecycle через tools
-- читать state/history/trace как structured external interface
-- работать с legacy onboarding без прямого доступа к внутренним CLI
-- поднимать HTTP MCP surface для внутренней инфраструктуры
-
-## Current Scope
-
-Текущий baseline включает:
-
-- stdio transport
-- HTTP transport
-- product lifecycle surface
-- workflow lifecycle surface
-- observability surface
-- legacy onboarding surface
-- artifact and report access
-- auth, protocol versioning, rate limit и body limit
-
-`GRACE MCP` следует использовать как официальный внешний интерфейс к runtime `GRACE`.
+### Резюме
+Используйте `GRACE MCP` когда вам нужно дать вашему ИИ-ассистенту API-доступ к коду с жесткими, детерминированными ограничениями, отчетами о рисках и контрактной маршрутизацией, которую гарантирует фреймворк GRACE.
